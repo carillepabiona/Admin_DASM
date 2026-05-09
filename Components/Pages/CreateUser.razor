@@ -1,0 +1,165 @@
+﻿@page "/create-user"
+@using System.Text.RegularExpressions
+<head>
+    <link rel="stylesheet" href="css/create-user.css" />
+</head>
+
+<div class="create-user-container">
+    <div class="page-header">
+        <h1>Create New User</h1>
+        <p class="subtitle">Add a new user to the system</p>
+    </div>
+
+    <EditForm Model="@userModel" OnValidSubmit="@HandleSubmit">
+        <DataAnnotationsValidator />
+
+        <!-- User Information Section -->
+        <div class="form-section">
+            <h2 class="section-title">User Information</h2>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>USER ID <span class="required">*</span></label>
+                    <div class="input-group">
+                        <InputText id="userId" @bind-Value="@userModel.UserId" readonly class="form-control" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="fullName">FULL NAME <span class="required">*</span></label>
+                    <InputText id="fullName" @bind-Value="@userModel.FullName" class="form-control" placeholder="" />
+                    <ValidationMessage For="@(() => userModel.FullName)" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="username">USERNAME <span class="required">*</span></label>
+                    <InputText id="username" @bind-Value="@userModel.Username" class="form-control" placeholder="" />
+                    <ValidationMessage For="@(() => userModel.Username)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="email">EMAIL <span class="required">*</span></label>
+                    <InputText id="email" type="email" @bind-Value="@userModel.Email" class="form-control" placeholder="" />
+                    <ValidationMessage For="@(() => userModel.Email)" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">PASSWORD <span class="required">*</span></label>
+                    <InputText id="password" type="password" @bind-Value="@userModel.Password" class="form-control" placeholder="" />
+                    <small class="helper-text">Must be at least 8 characters with uppercase, lowercase, and special character.</small>
+                    <ValidationMessage For="@(() => userModel.Password)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="contactNumber">CONTACT NUMBER <span class="required">*</span></label>
+                    <InputText id="contactNumber" @bind-Value="@userModel.ContactNumber" class="form-control" placeholder="+63" />
+                    <ValidationMessage For="@(() => userModel.ContactNumber)" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Access Control Section -->
+        <div class="form-section">
+            <h2 class="section-title">Access Control</h2>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="accessLevel">ACCESS LEVEL <span class="required">*</span></label>
+                    <InputSelect id="accessLevel" @bind-Value="@userModel.AccessLevel" class="form-control">
+                        <option value="">Select</option>
+                        <option value="admin">Level 1: View, Edit, Share, Download, Delete</option>
+                        <option value="manager">Level 2: View, Edit, Share, Download</option>
+                        <option value="user">Level 3: View, Edit, Share</option>
+                        <option value="guest">Level 4: View, Edit</option>
+                        <option value="guest">Level 5: View, Edit</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => userModel.AccessLevel)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="role">ROLE <span class="required">*</span></label>
+                    <InputSelect id="role" @bind-Value="@userModel.Role" class="form-control">
+                        <option value="">Select Role</option>
+                        <option value="admin">Administrator</option>
+                        <option value="moderator">Civilian</option>
+                        <option value="editor">Miliraty Personnel</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => userModel.Role)" />
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <InputCheckbox id="active" @bind-Value="@userModel.IsActive" />
+                <label for="active">Active</label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">CREATE USER</button>
+                <button type="button" class="btn btn-secondary" @onclick="@ClearForm">CLEAR</button>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private UserModel userModel = new();
+
+    protected override void OnInitialized()
+    {
+        userModel.UserId = GenerateUserId();
+        base.OnInitialized();
+    }
+
+    private string GenerateUserId()
+    {
+        return "U" + DateTime.Now.Ticks.ToString().Substring(0, 10);
+    }
+
+    private async Task HandleSubmit()
+    {
+        // Validate password strength
+        if (!IsPasswordStrong(userModel.Password))
+        {
+            return;
+        }
+
+        // Add your API call here
+        await Task.Delay(500);
+        // Success logic
+    }
+
+    private bool IsPasswordStrong(string password)
+    {
+        if (string.IsNullOrEmpty(password) || password.Length < 8)
+            return false;
+
+        bool hasUpperCase = Regex.IsMatch(password, "[A-Z]");
+        bool hasLowerCase = Regex.IsMatch(password, "[a-z]");
+        bool hasSpecialChar = Regex.IsMatch(password, "[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]");
+
+        return hasUpperCase && hasLowerCase && hasSpecialChar;
+    }
+
+    private void ClearForm()
+    {
+        userModel = new();
+        userModel.UserId = GenerateUserId();
+    }
+
+    public class UserModel
+    {
+        public string UserId { get; set; }
+        public string FullName { get; set; }
+        public string Username { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string ContactNumber { get; set; }
+        public string AccessLevel { get; set; }
+        public string Role { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+}

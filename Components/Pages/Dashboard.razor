@@ -1,0 +1,232 @@
+﻿@page "/dashboard"
+<link rel="stylesheet" href="css/dashboard.css">
+
+<div class="dashboard-container">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+        <h1>Welcome back, User!</h1>
+        <p>Here's what's happening with your documents today</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon recent">
+                ⏱️
+            </div>
+            <div class="stat-content">
+                <p class="stat-label">Recent Viewed Files</p>
+                <p class="stat-value">12</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon uploaded">
+                ✅
+            </div>
+            <div class="stat-content">
+                <p class="stat-label">You Uploaded Today</p>
+                <p class="stat-value">5</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Files Section -->
+    <div class="recent-files-section">
+        <div class="section-header">
+            <h2>Recent Files</h2>
+            <a href="#" class="view-all">View All</a>
+        </div>
+
+        <div class="files-table-wrapper">
+            <table class="files-table">
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Date Modified</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="file-name-cell">
+                                <span class="file-icon">📄</span>
+                                <span>Personnel_Record_2024.pdf</span>
+                            </div>
+                        </td>
+                        <td>PDF</td>
+                        <td>2.4 MB</td>
+                        <td>May 03, 2026</td>
+                        <td>
+                            <span class="status-badge completed">Completed</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-action view">👁️</button>
+                                <button class="btn-action download">⬇️</button>
+                                <button class="btn-action delete">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="file-name-cell">
+                                <span class="file-icon">📊</span>
+                                <span>Monthly_Report_April.xlsx</span>
+                            </div>
+                        </td>
+                        <td>Excel</td>
+                        <td>1.8 MB</td>
+                        <td>May 02, 2026</td>
+                        <td>
+                            <span class="status-badge completed">Completed</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-action view">👁️</button>
+                                <button class="btn-action download">⬇️</button>
+                                <button class="btn-action delete">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="file-name-cell">
+                                <span class="file-icon">📝</span>
+                                <span>Staff_Directory_2026.docx</span>
+                            </div>
+                        </td>
+                        <td>Word</td>
+                        <td>890 KB</td>
+                        <td>May 01, 2026</td>
+                        <td>
+                            <span class="status-badge pending">Pending</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-action view">👁️</button>
+                                <button class="btn-action download">⬇️</button>
+                                <button class="btn-action delete">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="file-name-cell">
+                                <span class="file-icon">📄</span>
+                                <span>Training_Materials.pdf</span>
+                            </div>
+                        </td>
+                        <td>PDF</td>
+                        <td>3.2 MB</td>
+                        <td>Apr 30, 2026</td>
+                        <td>
+                            <span class="status-badge completed">Completed</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-action view">👁️</button>
+                                <button class="btn-action download">⬇️</button>
+                                <button class="btn-action delete">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="file-name-cell">
+                                <span class="file-icon">🎯</span>
+                                <span>Q2_Strategic_Plan.pptx</span>
+                            </div>
+                        </td>
+                        <td>PowerPoint</td>
+                        <td>4.1 MB</td>
+                        <td>Apr 28, 2026</td>
+                        <td>
+                            <span class="status-badge archived">Archived</span>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-action view">👁️</button>
+                                <button class="btn-action download">⬇️</button>
+                                <button class="btn-action delete">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Activity & Quick Actions Row -->
+    <div class="bottom-section">
+        <!-- Activity Feed -->
+        <div class="activity-card">
+            <h3>Recent Activity</h3>
+            <div class="activity-list">
+                <div class="activity-item">
+                    <span class="activity-icon">📤</span>
+                    <div class="activity-text">
+                        <p class="activity-title">Personnel_Record_2024.pdf uploaded</p>
+                        <p class="activity-time">Today at 10:30 AM</p>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-icon">✏️</span>
+                    <div class="activity-text">
+                        <p class="activity-title">Monthly_Report_April.xlsx modified</p>
+                        <p class="activity-time">Yesterday at 3:15 PM</p>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-icon">👤</span>
+                    <div class="activity-text">
+                        <p class="activity-title">New user account created</p>
+                        <p class="activity-time">2 days ago</p>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <span class="activity-icon">🔐</span>
+                    <div class="activity-text">
+                        <p class="activity-title">Security audit completed</p>
+                        <p class="activity-time">3 days ago</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions-card">
+            <h3>Quick Actions</h3>
+            <div class="actions-list">
+                <button class="quick-action-btn">
+                    <span class="action-icon">➕</span>
+                    <span class="action-text">New Document</span>
+                </button>
+                <button class="quick-action-btn">
+                    <span class="action-icon">📤</span>
+                    <span class="action-text">Upload File</span>
+                </button>
+                <button class="quick-action-btn">
+                    <span class="action-icon">📋</span>
+                    <span class="action-text">Create Report</span>
+                </button>
+                <button class="quick-action-btn">
+                    <span class="action-icon">👥</span>
+                    <span class="action-text">Manage Users</span>
+                </button>
+                <button class="quick-action-btn">
+                    <span class="action-icon">🔍</span>
+                    <span class="action-text">Search Files</span>
+                </button>
+                <button class="quick-action-btn">
+                    <span class="action-icon">📊</span>
+                    <span class="action-text">View Analytics</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,327 @@
+﻿@page "/users"
+@using System.Collections.Generic
+
+<head>
+    <link rel="stylesheet" href="css/users.css" />
+</head>
+<div class="users-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>Users Management</h1>
+        <p>View and manage system users</p>
+    </div>
+
+    <!-- Filters & Search Section -->
+    <div class="filters-section">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search by name, email, ID..." @oninput="@((ChangeEventArgs e) => SearchUsers(e.Value?.ToString()))">
+        </div>
+
+        <div class="filter-controls">
+            <select class="filter-dropdown" @onchange="@((ChangeEventArgs e) => FilterByRole(e.Value?.ToString()))">
+                <option value="">All Roles</option>
+                <option value="Admin">Admin</option>
+                <option value="Civilian">Civilian</option>
+                <option value="Military">Military Personnel</option>
+            </select>
+
+            <select class="filter-dropdown" @onchange="@((ChangeEventArgs e) => FilterByStatus(e.Value?.ToString()))">
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Suspended">Suspended</option>
+            </select>
+
+            <div class="view-toggle">
+                <button class="view-btn active" @onclick="@(() => SetViewMode("card"))">
+                    <i class="fas fa-th"></i> Card
+                </button>
+                <button class="view-btn" @onclick="@(() => SetViewMode("table"))">
+                    <i class="fas fa-table"></i> Table
+                </button>
+                <button class="view-btn" @onclick="@(() => SetViewMode("list"))">
+                    <i class="fas fa-list"></i> List
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Showing Count -->
+    <div class="results-info">
+        Showing @filteredUsers.Count of @users.Count users
+    </div>
+
+    <!-- Users Grid (Card View) -->
+    @if (viewMode == "card")
+    {
+        <div class="users-grid">
+            @foreach (var user in filteredUsers)
+            {
+                <div class="user-card">
+                    <!-- Avatar & Status -->
+                    <div class="card-header">
+                        <div class="avatar" style="background-color: @user.AvatarColor">
+                            @user.Avatar
+                        </div>
+                        <span class="status-badge" style="background-color: @(user.IsActive ? "#d4f4dd" : "#ffe0e0")">
+                            @(user.IsActive ? "ACTIVE" : "INACTIVE")
+                        </span>
+                    </div>
+
+                    <!-- User Info -->
+                    <div class="card-body">
+                        <h3>@user.Username</h3>
+                        <div class="user-details">
+                            <div class="detail-row">
+                                <i class="fas fa-id-card"></i>
+                                <span>ID: @user.UserId</span>
+                            </div>
+                            <div class="detail-row">
+                                <i class="fas fa-envelope"></i>
+                                <span>@user.Email</span>
+                            </div>
+                            <div class="detail-row">
+                                <i class="fas fa-phone"></i>
+                                <span>@user.Phone</span>
+                            </div>
+                            <div class="detail-row">
+                                <i class="fas fa-user-tag"></i>
+                                <span>@user.Role</span>
+                            </div>
+                            <div class="detail-row">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>@user.Level</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="card-footer">
+                        <button class="action-btn view-btn" title="View">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="action-btn edit-btn" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn download-btn" title="Download">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="action-btn share-btn" title="Share">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Table View -->
+    @if (viewMode == "table")
+    {
+        <div class="table-container">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>Avatar</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Role</th>
+                        <th>Level</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in filteredUsers)
+                    {
+                        <tr>
+                            <td>
+                                <div class="avatar" style="background-color: @user.AvatarColor; width: 35px; height: 35px; margin: 0;">
+                                    @user.Avatar
+                                </div>
+                            </td>
+                            <td>@user.Username</td>
+                            <td>@user.Email</td>
+                            <td>@user.Phone</td>
+                            <td>@user.Role</td>
+                            <td>@user.Level</td>
+                            <td>
+                                <span class="status-badge" style="background-color: @(user.IsActive ? "#d4f4dd" : "#ffe0e0")">
+                                    @(user.IsActive ? "ACTIVE" : "INACTIVE")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="action-btn view-btn" title="View"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
+                                    <button class="action-btn download-btn" title="Download"><i class="fas fa-download"></i></button>
+                                    <button class="action-btn share-btn" title="Share"><i class="fas fa-share-alt"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <!-- List View -->
+    @if (viewMode == "list")
+    {
+        <div class="list-container">
+            @foreach (var user in filteredUsers)
+            {
+                <div class="list-item">
+                    <div class="list-item-left">
+                        <div class="avatar" style="background-color: @user.AvatarColor">
+                            @user.Avatar
+                        </div>
+                        <div class="list-item-info">
+                            <h4>@user.Username</h4>
+                            <p>@user.Email</p>
+                        </div>
+                    </div>
+                    <div class="list-item-middle">
+                        <span class="role-badge">@user.Role</span>
+                        <span class="status-badge" style="background-color: @(user.IsActive ? "#d4f4dd" : "#ffe0e0")">
+                            @(user.IsActive ? "ACTIVE" : "INACTIVE")
+                        </span>
+                    </div>
+                    <div class="list-item-actions">
+                        <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                        <button class="action-btn edit-btn"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn download-btn"><i class="fas fa-download"></i></button>
+                        <button class="action-btn share-btn"><i class="fas fa-share-alt"></i></button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<UserModel> users = new();
+    private List<UserModel> filteredUsers = new();
+    private string viewMode = "card";
+    private string searchTerm = "";
+    private string selectedRole = "";
+    private string selectedStatus = "";
+
+    protected override void OnInitialized()
+    {
+        LoadUsers();
+    }
+
+    private void LoadUsers()
+    {
+        users = new List<UserModel>
+        {
+            new UserModel
+            {
+                Avatar = "a",
+                AvatarColor = "#8b7dc8",
+                Username = "admin01",
+                UserId = "U1268863462",
+                Email = "admin01@dasm.gov.ph",
+                Phone = "+639562223481",
+                Role = "Admin",
+                Level = "Level 1",
+                IsActive = true
+            },
+            new UserModel
+            {
+                Avatar = "U",
+                AvatarColor = "#7b9bc8",
+                Username = "UserLevelAccess5",
+                UserId = "U0560537071",
+                Email = "userlevelaccess5@gmail.com",
+                Phone = "+639903994728",
+                Role = "Civilian",
+                Level = "Level 5",
+                IsActive = true
+            },
+            new UserModel
+            {
+                Avatar = "U",
+                AvatarColor = "#7b9bc8",
+                Username = "UserLevelAccess4",
+                UserId = "U4363362360",
+                Email = "userlevelaccess4@gmail.com",
+                Phone = "+639903994729",
+                Role = "Military Personnel",
+                Level = "Level 4",
+                IsActive = true
+            },
+            new UserModel
+            {
+                Avatar = "U",
+                AvatarColor = "#7b9bc8",
+                Username = "UserLevelAccess3",
+                UserId = "U4333343633",
+                Email = "userlevelaccess3@gmail.com",
+                Phone = "+639903994707",
+                Role = "Civilian",
+                Level = "Level 3",
+                IsActive = true
+            }
+        };
+        filteredUsers = users;
+    }
+
+    private void SearchUsers(string term)
+    {
+        searchTerm = term?.ToLower() ?? "";
+        ApplyFilters();
+    }
+
+    private void FilterByRole(string role)
+    {
+        selectedRole = role ?? "";
+        ApplyFilters();
+    }
+
+    private void FilterByStatus(string status)
+    {
+        selectedStatus = status ?? "";
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        filteredUsers = users.Where(u =>
+        {
+            var matchesSearch = string.IsNullOrEmpty(searchTerm) ||
+                u.Username.ToLower().Contains(searchTerm) ||
+                u.Email.ToLower().Contains(searchTerm) ||
+                u.UserId.ToLower().Contains(searchTerm);
+
+            var matchesRole = string.IsNullOrEmpty(selectedRole) || u.Role == selectedRole;
+
+            var matchesStatus = string.IsNullOrEmpty(selectedStatus) ||
+                (selectedStatus == "Active" && u.IsActive) ||
+                (selectedStatus == "Inactive" && !u.IsActive);
+
+            return matchesSearch && matchesRole && matchesStatus;
+        }).ToList();
+    }
+
+    private void SetViewMode(string mode)
+    {
+        viewMode = mode;
+    }
+
+    public class UserModel
+    {
+        public string Avatar { get; set; }
+        public string AvatarColor { get; set; }
+        public string Username { get; set; }
+        public string UserId { get; set; }
+        public string Email { get; set; }
+        public string Phone { get; set; }
+        public string Role { get; set; }
+        public string Level { get; set; }
+        public bool IsActive { get; set; }
+    }
+}

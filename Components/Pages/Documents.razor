@@ -1,0 +1,254 @@
+﻿@page "/documents"
+@using System.Collections.Generic
+@inject NavigationManager Navigation
+
+<link rel="stylesheet" href="css/documents.css" />
+
+<div class="documents-container">
+    <!-- Header -->
+    <div class="documents-header">
+        <div class="header-content">
+            <h1>Documents</h1>
+            <p class="subtitle">Manage and view your documents</p>
+        </div>
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="search-bar">
+        <div class="search-input-wrapper">
+            <input type="text" placeholder="Search documents..." class="search-input" @bind="searchQuery" />
+            <span class="search-icon">🔍</span>
+        </div>
+        <select class="filter-select" @bind="filterType">
+            <option value="">All Types</option>
+            <option value="pdf">PDF</option>
+            <option value="docx">Word</option>
+            <option value="xlsx">Excel</option>
+            <option value="pptx">PowerPoint</option>
+            <option value="img">Image</option>
+        </select>
+    </div>
+
+    <!-- Documents Grid -->
+    <div class="documents-grid">
+        @foreach (var doc in GetFilteredDocuments())
+        {
+            <div class="document-card" @onmouseover="() => ShowActions(doc.Id)" @onmouseout="() => HideActions(doc.Id)">
+                <!-- Document Thumbnail -->
+                <div class="document-thumbnail">
+                    <div class="file-icon" style="background-color: @GetFileColor(doc.Type)">
+                        @GetFileIcon(doc.Type)
+                    </div>
+                    @if (selectedDocumentId == doc.Id)
+                    {
+                        <div class="action-overlay">
+                            <div class="action-buttons">
+                                <button class="action-btn view-btn" title="View" @onclick="() => HandleView(doc)">
+                                    <span>👁️</span>
+                                </button>
+                                <button class="action-btn edit-btn" title="Edit" @onclick="() => HandleEdit(doc)">
+                                    <span>✏️</span>
+                                </button>
+                                <button class="action-btn share-btn" title="Share" @onclick="() => HandleShare(doc)">
+                                    <span>🔗</span>
+                                </button>
+                                <button class="action-btn download-btn" title="Download" @onclick="() => HandleDownload(doc)">
+                                    <span>⬇️</span>
+                                </button>
+                                <button class="action-btn delete-btn" title="Delete" @onclick="() => HandleDelete(doc)">
+                                    <span>🗑️</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Document Info -->
+                <div class="document-info">
+                    <h3 class="document-name">@doc.Name</h3>
+                    <p class="document-meta">
+                        <span class="file-size">@doc.Size</span>
+                        <span class="file-date">@doc.ModifiedDate.ToString("MMM dd, yyyy")</span>
+                    </p>
+                    <p class="document-owner">By @doc.Owner</p>
+                </div>
+
+                <!-- Quick Actions (Mobile) -->
+                <div class="quick-actions-mobile">
+                    <button class="quick-action-btn" @onclick="() => HandleView(doc)">View</button>
+                    <button class="quick-action-btn" @onclick="() => HandleEdit(doc)">Edit</button>
+                    <button class="quick-action-btn" @onclick="() => HandleShare(doc)">Share</button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Empty State -->
+    @if (!documents.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">📄</div>
+            <h2>No documents found</h2>
+            <p>Upload your first document to get started</p>
+            <button class="btn btn-primary" @onclick="HandleUpload">Upload Document</button>
+        </div>
+    }
+</div>
+
+@code {
+    private List<DocumentModel> documents = new();
+    private string searchQuery = "";
+    private string filterType = "";
+    private string selectedDocumentId = "";
+
+    protected override void OnInitialized()
+    {
+        // Sample data
+        documents = new List<DocumentModel>
+        {
+            new DocumentModel
+            {
+                Id = "1",
+                Name = "Q4 Financial Report.pdf",
+                Type = "pdf",
+                Size = "2.4 MB",
+                ModifiedDate = DateTime.Now.AddDays(-5),
+                Owner = "You"
+            },
+            new DocumentModel
+            {
+                Id = "2",
+                Name = "Project Proposal.docx",
+                Type = "docx",
+                Size = "1.8 MB",
+                ModifiedDate = DateTime.Now.AddDays(-2),
+                Owner = "You"
+            },
+            new DocumentModel
+            {
+                Id = "3",
+                Name = "Budget Analysis 2026.xlsx",
+                Type = "xlsx",
+                Size = "856 KB",
+                ModifiedDate = DateTime.Now.AddDays(-1),
+                Owner = "You"
+            },
+            new DocumentModel
+            {
+                Id = "4",
+                Name = "Marketing Presentation.pptx",
+                Type = "pptx",
+                Size = "3.2 MB",
+                ModifiedDate = DateTime.Now.AddHours(-3),
+                Owner = "You"
+            },
+            new DocumentModel
+            {
+                Id = "5",
+                Name = "Team Photo 2026.jpg",
+                Type = "img",
+                Size = "4.1 MB",
+                ModifiedDate = DateTime.Now.AddDays(-10),
+                Owner = "You"
+            },
+            new DocumentModel
+            {
+                Id = "6",
+                Name = "Contract Template.pdf",
+                Type = "pdf",
+                Size = "1.2 MB",
+                ModifiedDate = DateTime.Now.AddDays(-15),
+                Owner = "You"
+            }
+        };
+    }
+
+    private List<DocumentModel> GetFilteredDocuments()
+    {
+        return documents
+            .Where(d =>
+                d.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) &&
+                (string.IsNullOrEmpty(filterType) || d.Type == filterType)
+            )
+            .ToList();
+    }
+
+    private void ShowActions(string docId)
+    {
+        selectedDocumentId = docId;
+    }
+
+    private void HideActions(string docId)
+    {
+        if (selectedDocumentId == docId)
+            selectedDocumentId = "";
+    }
+
+    private string GetFileIcon(string type)
+    {
+        return type switch
+        {
+            "pdf" => "📄",
+            "docx" => "📝",
+            "xlsx" => "📊",
+            "pptx" => "🎯",
+            "img" => "🖼️",
+            _ => "📁"
+        };
+    }
+
+    private string GetFileColor(string type)
+    {
+        return type switch
+        {
+            "pdf" => "#d32f2f",
+            "docx" => "#2196F3",
+            "xlsx" => "#1f7e3a",
+            "pptx" => "#f57c00",
+            "img" => "#9c27b0",
+            _ => "#757575"
+        };
+    }
+
+    private void HandleView(DocumentModel doc)
+    {
+        Navigation.NavigateTo($"/document-viewer/{doc.Id}");
+    }
+
+    private void HandleEdit(DocumentModel doc)
+    {
+        Navigation.NavigateTo($"/document-editor/{doc.Id}");
+    }
+
+    private void HandleShare(DocumentModel doc)
+    {
+        // Show share modal/dialog
+        Console.WriteLine($"Share: {doc.Name}");
+    }
+
+    private void HandleDownload(DocumentModel doc)
+    {
+        // Trigger download
+        Console.WriteLine($"Download: {doc.Name}");
+    }
+
+    private void HandleDelete(DocumentModel doc)
+    {
+        documents.Remove(doc);
+    }
+
+    private void HandleUpload()
+    {
+        Navigation.NavigateTo("/document-upload");
+    }
+
+    public class DocumentModel
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public string Size { get; set; }
+        public DateTime ModifiedDate { get; set; }
+        public string Owner { get; set; }
+    }
+}

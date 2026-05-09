@@ -1,0 +1,94 @@
+﻿@inherits LayoutComponentBase
+
+<div class="main-container">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <img src="images/logo_afp.png" alt="DASM-AFP Logo" class="logo">
+            <div class="header-branding">
+                <h1>DASM-AFP</h1>
+                <p>ARMED FORCES OF THE PHILIPPINES</p>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <div class="notification">
+                <i class="fas fa-bell"></i>
+                <span class="badge">3</span>
+            </div>
+            <div class="user-status">
+                <span class="status-label">null</span>
+                <span class="status-value">N/A</span>
+            </div>
+
+            <!-- User Avatar with Dropdown -->
+            <div class="user-menu-wrapper">
+                <button class="user-avatar" @onclick="@(() => ToggleUserMenu())">N</button>
+
+                @if (showUserMenu)
+                {
+                    <div class="user-dropdown-menu">
+                        <a href="/profile" class="dropdown-item profile-item">
+                            <i class="fas fa-user"></i>
+                            <span>Profile</span>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item logout-item" @onclick="@(() => HandleLogout())">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="content-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <nav class="nav-menu">
+                <NavLink href="/dashboard" class="nav-item" Match="NavLinkMatch.All">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="label">DASHBOARD</span>
+                </NavLink>
+                <NavLink href="/users" class="nav-item" Match="NavLinkMatch.All">
+                    <i class="fas fa-users"></i>
+                    <span class="label">USERS</span>
+                </NavLink>
+                <NavLink href="/documents" class="nav-item" Match="NavLinkMatch.All">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="label">DOCUMENTS</span>
+                </NavLink>
+                <NavLink href="/create-user" class="nav-item" Match="NavLinkMatch.All">
+                    <i class="fas fa-user-plus"></i>
+                    <span class="label">CREATE USER</span>
+                </NavLink>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            @Body
+        </main>
+    </div>
+</div>
+
+@code {
+    private bool showUserMenu = false;
+
+    [Inject]
+    private NavigationManager Navigation { get; set; }
+
+    private void ToggleUserMenu()
+    {
+        showUserMenu = !showUserMenu;
+    }
+
+    private void HandleLogout()
+    {
+        // Add your logout logic here (clear session, etc.)
+        showUserMenu = false;
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}
