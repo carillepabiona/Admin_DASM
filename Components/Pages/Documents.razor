@@ -1,254 +1,457 @@
 ﻿@page "/documents"
 @using System.Collections.Generic
+@using System.Linq
 @inject NavigationManager Navigation
+<head>
+    <link rel="stylesheet" href="css/documents.css" />
+</head>
+<PageTitle>Documents</PageTitle>
 
-<link rel="stylesheet" href="css/documents.css" />
 
 <div class="documents-container">
     <!-- Header -->
     <div class="documents-header">
         <div class="header-content">
-            <h1>Documents</h1>
-            <p class="subtitle">Manage and view your documents</p>
+            <h1>📄 Documents</h1>
+            <p class="subtitle">Manage your files, folders, and categories</p>
         </div>
     </div>
 
     <!-- Search and Filter Bar -->
     <div class="search-bar">
         <div class="search-input-wrapper">
-            <input type="text" placeholder="Search documents..." class="search-input" @bind="searchQuery" />
             <span class="search-icon">🔍</span>
+            <input type="text"
+                   class="search-input"
+                   placeholder="Search documents..."
+                   @bind="searchQuery"
+                   @oninput="@((ChangeEventArgs e) => FilterDocuments(e.Value?.ToString() ?? ""))" />
         </div>
-        <select class="filter-select" @bind="filterType">
-            <option value="">All Types</option>
-            <option value="pdf">PDF</option>
-            <option value="docx">Word</option>
-            <option value="xlsx">Excel</option>
-            <option value="pptx">PowerPoint</option>
-            <option value="img">Image</option>
+        <select class="filter-select" @onchange="FilterByCategory">
+            <option value="">All Categories</option>
+            <option value="Work">Work</option>
+            <option value="Personal">Personal</option>
+            <option value="Finance">Finance</option>
+            <option value="Legal">Legal</option>
+            <option value="Medical">Medical</option>
+        </select>
+        <select class="filter-select" @onchange="SortDocuments">
+            <option value="recent">Recently Modified</option>
+            <option value="name">Name (A-Z)</option>
+            <option value="size">File Size</option>
+            <option value="oldest">Oldest First</option>
         </select>
     </div>
 
-    <!-- Documents Grid -->
-    <div class="documents-grid">
-        @foreach (var doc in GetFilteredDocuments())
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb">
+        <span class="breadcrumb-item active">📁 My Documents</span>
+        @if (!string.IsNullOrEmpty(currentFolder))
         {
-            <div class="document-card" @onmouseover="() => ShowActions(doc.Id)" @onmouseout="() => HideActions(doc.Id)">
-                <!-- Document Thumbnail -->
-                <div class="document-thumbnail">
-                    <div class="file-icon" style="background-color: @GetFileColor(doc.Type)">
-                        @GetFileIcon(doc.Type)
-                    </div>
-                    @if (selectedDocumentId == doc.Id)
-                    {
-                        <div class="action-overlay">
-                            <div class="action-buttons">
-                                <button class="action-btn view-btn" title="View" @onclick="() => HandleView(doc)">
-                                    <span>👁️</span>
-                                </button>
-                                <button class="action-btn edit-btn" title="Edit" @onclick="() => HandleEdit(doc)">
-                                    <span>✏️</span>
-                                </button>
-                                <button class="action-btn share-btn" title="Share" @onclick="() => HandleShare(doc)">
-                                    <span>🔗</span>
-                                </button>
-                                <button class="action-btn download-btn" title="Download" @onclick="() => HandleDownload(doc)">
-                                    <span>⬇️</span>
-                                </button>
-                                <button class="action-btn delete-btn" title="Delete" @onclick="() => HandleDelete(doc)">
-                                    <span>🗑️</span>
-                                </button>
-                            </div>
-                        </div>
-                    }
-                </div>
-
-                <!-- Document Info -->
-                <div class="document-info">
-                    <h3 class="document-name">@doc.Name</h3>
-                    <p class="document-meta">
-                        <span class="file-size">@doc.Size</span>
-                        <span class="file-date">@doc.ModifiedDate.ToString("MMM dd, yyyy")</span>
-                    </p>
-                    <p class="document-owner">By @doc.Owner</p>
-                </div>
-
-                <!-- Quick Actions (Mobile) -->
-                <div class="quick-actions-mobile">
-                    <button class="quick-action-btn" @onclick="() => HandleView(doc)">View</button>
-                    <button class="quick-action-btn" @onclick="() => HandleEdit(doc)">Edit</button>
-                    <button class="quick-action-btn" @onclick="() => HandleShare(doc)">Share</button>
-                </div>
-            </div>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-item">@currentFolder</span>
         }
     </div>
 
-    <!-- Empty State -->
-    @if (!documents.Any())
+    <!-- Category Pills -->
+    <div class="category-pills">
+        @foreach (var category in categories)
+        {
+            <button class="category-pill @(selectedCategory == category ? "active" : "")"
+                    @onclick="@(() => SelectCategory(category))">
+                @GetCategoryIcon(category) @category
+            </button>
+        }
+    </div>
+
+    <!-- Folders Section -->
+    @if (folders.Any())
+    {
+        <div class="section-title">📁 Folders</div>
+        <div class="folders-grid">
+            @foreach (var folder in folders)
+            {
+                <div class="folder-card" @onclick="@(() => OpenFolder(folder.Name))">
+                    <div class="folder-icon">
+                        <span class="folder-emoji">📁</span>
+                        <span class="folder-count">@folder.DocumentCount</span>
+                    </div>
+                    <div class="folder-info">
+                        <p class="folder-name">@folder.Name</p>
+                        <p class="folder-meta">@folder.DocumentCount documents</p>
+                        <p class="folder-modified">Modified: @folder.LastModified.ToString("MMM dd, yyyy")</p>
+                    </div>
+                    <div class="folder-actions">
+                        <button class="action-icon" @onclick:stopPropagation="true" @onclick="@(() => DeleteFolder(folder.Name))" title="Delete">🗑️</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Documents Section -->
+    <div class="section-title">📄 Documents</div>
+    @if (filteredDocuments.Any())
+    {
+        <div class="documents-grid">
+            @foreach (var doc in filteredDocuments)
+            {
+                <div class="document-card" @onclick="@(() => SelectDocument(doc))">
+                    <!-- Thumbnail -->
+                    <div class="document-thumbnail">
+                        <div class="file-icon" style="background-color: @GetFileColor(doc.FileType)">
+                            @GetFileIcon(doc.FileType)
+                        </div>
+                        <div class="action-overlay" @onclick:stopPropagation="true">
+                            <div class="action-buttons">
+                                <button class="action-btn view-btn" title="View" @onclick="@(() => ViewDocument(doc))">👁️</button>
+                                <button class="action-btn edit-btn" title="Edit" @onclick="@(() => EditDocument(doc))">✏️</button>
+                                <button class="action-btn share-btn" title="Share" @onclick="@(() => ShareDocument(doc))">📤</button>
+                                <button class="action-btn download-btn" title="Download" @onclick="@(() => DownloadDocument(doc))">⬇️</button>
+                                <button class="action-btn delete-btn" title="Delete" @onclick="@(() => DeleteDocument(doc))">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Document Info -->
+                    <div class="document-info">
+                        <h3 class="document-name">@doc.Name</h3>
+                        <div class="document-meta">
+                            <span class="file-size">@FormatFileSize(doc.Size) KB</span>
+                            <span class="file-date">@doc.UploadDate.ToString("MMM dd")</span>
+                        </div>
+                        <p class="document-category">
+                            <span class="category-badge">@doc.Category</span>
+                        </p>
+                        <p class="document-owner">
+                            Uploaded by: <strong>@doc.UploadedBy</strong>
+                        </p>
+                        <p class="document-time">
+                            @GetRelativeTime(doc.UploadDate)
+                        </p>
+                    </div>
+
+                    <!-- Quick Actions Mobile -->
+                    <div class="quick-actions-mobile">
+                        <button class="quick-action-btn" @onclick:stopPropagation="true" @onclick="@(() => ViewDocument(doc))">View</button>
+                        <button class="quick-action-btn" @onclick:stopPropagation="true" @onclick="@(() => DownloadDocument(doc))">Download</button>
+                        <button class="quick-action-btn" @onclick:stopPropagation="true" @onclick="@(() => DeleteDocument(doc))">Delete</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(searchQuery) || !string.IsNullOrEmpty(selectedCategory))
     {
         <div class="empty-state">
-            <div class="empty-icon">📄</div>
-            <h2>No documents found</h2>
-            <p>Upload your first document to get started</p>
-            <button class="btn btn-primary" @onclick="HandleUpload">Upload Document</button>
+            <div class="empty-icon">🔍</div>
+            <h2>No Documents Found</h2>
+            <p>Try adjusting your search filters or upload a new document.</p>
+            <button class="btn btn-primary" @onclick="ClearFilters">Clear Filters</button>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h2>No Documents Yet</h2>
+            <p>Start by uploading your first document or creating a folder.</p>
+            <button class="btn btn-primary" @onclick="ShowUploadModal">Upload Document</button>
         </div>
     }
 </div>
 
 @code {
-    private List<DocumentModel> documents = new();
     private string searchQuery = "";
-    private string filterType = "";
-    private string selectedDocumentId = "";
+    private string selectedCategory = "";
+    private string currentFolder = "";
+    private string sortBy = "recent";
+
+    private List<DocumentItem> documents = new();
+    private List<DocumentItem> filteredDocuments = new();
+    private List<FolderItem> folders = new();
+    private List<string> categories = new() { "Work", "Personal", "Finance", "Legal", "Medical" };
 
     protected override void OnInitialized()
     {
-        // Sample data
-        documents = new List<DocumentModel>
+        LoadDocuments();
+        LoadFolders();
+    }
+
+    private void LoadDocuments()
+    {
+        documents = new List<DocumentItem>
         {
-            new DocumentModel
-            {
-                Id = "1",
-                Name = "Q4 Financial Report.pdf",
-                Type = "pdf",
-                Size = "2.4 MB",
-                ModifiedDate = DateTime.Now.AddDays(-5),
-                Owner = "You"
+            new DocumentItem {
+                Id = 1,
+                Name = "Project Proposal Q2 2026.pdf",
+                FileType = "pdf",
+                Size = 2048,
+                UploadDate = DateTime.Now.AddDays(-5),
+                Category = "Work",
+                UploadedBy = "John Doe"
             },
-            new DocumentModel
-            {
-                Id = "2",
-                Name = "Project Proposal.docx",
-                Type = "docx",
-                Size = "1.8 MB",
-                ModifiedDate = DateTime.Now.AddDays(-2),
-                Owner = "You"
+            new DocumentItem {
+                Id = 2,
+                Name = "Budget Report 2026.xlsx",
+                FileType = "excel",
+                Size = 512,
+                UploadDate = DateTime.Now.AddDays(-3),
+                Category = "Finance",
+                UploadedBy = "Jane Smith"
             },
-            new DocumentModel
-            {
-                Id = "3",
-                Name = "Budget Analysis 2026.xlsx",
-                Type = "xlsx",
-                Size = "856 KB",
-                ModifiedDate = DateTime.Now.AddDays(-1),
-                Owner = "You"
+            new DocumentItem {
+                Id = 3,
+                Name = "Medical Records.docx",
+                FileType = "word",
+                Size = 256,
+                UploadDate = DateTime.Now.AddDays(-10),
+                Category = "Medical",
+                UploadedBy = "You"
             },
-            new DocumentModel
-            {
-                Id = "4",
-                Name = "Marketing Presentation.pptx",
-                Type = "pptx",
-                Size = "3.2 MB",
-                ModifiedDate = DateTime.Now.AddHours(-3),
-                Owner = "You"
+            new DocumentItem {
+                Id = 4,
+                Name = "Contract Agreement.pdf",
+                FileType = "pdf",
+                Size = 1024,
+                UploadDate = DateTime.Now.AddDays(-15),
+                Category = "Legal",
+                UploadedBy = "Legal Team"
             },
-            new DocumentModel
-            {
-                Id = "5",
-                Name = "Team Photo 2026.jpg",
-                Type = "img",
-                Size = "4.1 MB",
-                ModifiedDate = DateTime.Now.AddDays(-10),
-                Owner = "You"
+            new DocumentItem {
+                Id = 5,
+                Name = "Vacation Photos.zip",
+                FileType = "zip",
+                Size = 5120,
+                UploadDate = DateTime.Now.AddDays(-2),
+                Category = "Personal",
+                UploadedBy = "You"
             },
-            new DocumentModel
-            {
-                Id = "6",
-                Name = "Contract Template.pdf",
-                Type = "pdf",
-                Size = "1.2 MB",
-                ModifiedDate = DateTime.Now.AddDays(-15),
-                Owner = "You"
+            new DocumentItem {
+                Id = 6,
+                Name = "Meeting Notes.txt",
+                FileType = "text",
+                Size = 64,
+                UploadDate = DateTime.Now.AddDays(-1),
+                Category = "Work",
+                UploadedBy = "Manager"
+            },
+            new DocumentItem {
+                Id = 7,
+                Name = "Presentation.pptx",
+                FileType = "powerpoint",
+                Size = 3072,
+                UploadDate = DateTime.Now.AddHours(-6),
+                Category = "Work",
+                UploadedBy = "You"
+            },
+            new DocumentItem {
+                Id = 8,
+                Name = "Tax Return 2025.pdf",
+                FileType = "pdf",
+                Size = 1536,
+                UploadDate = DateTime.Now.AddDays(-20),
+                Category = "Finance",
+                UploadedBy = "Accountant"
             }
+        };
+
+        filteredDocuments = new List<DocumentItem>(documents);
+    }
+
+    private void LoadFolders()
+    {
+        folders = new List<FolderItem>
+        {
+            new FolderItem { Name = "Work Projects", DocumentCount = 12, LastModified = DateTime.Now.AddDays(-2) },
+            new FolderItem { Name = "Financial Documents", DocumentCount = 8, LastModified = DateTime.Now.AddDays(-5) },
+            new FolderItem { Name = "Personal Files", DocumentCount = 15, LastModified = DateTime.Now.AddDays(-1) },
+            new FolderItem { Name = "Archive", DocumentCount = 24, LastModified = DateTime.Now.AddDays(-30) }
         };
     }
 
-    private List<DocumentModel> GetFilteredDocuments()
+    private void FilterDocuments(string query)
     {
-        return documents
-            .Where(d =>
-                d.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) &&
-                (string.IsNullOrEmpty(filterType) || d.Type == filterType)
-            )
-            .ToList();
+        searchQuery = query;
+        ApplyFilters();
     }
 
-    private void ShowActions(string docId)
+    private void FilterByCategory(ChangeEventArgs e)
     {
-        selectedDocumentId = docId;
+        selectedCategory = e.Value?.ToString() ?? "";
+        ApplyFilters();
     }
 
-    private void HideActions(string docId)
+    private void SortDocuments(ChangeEventArgs e)
     {
-        if (selectedDocumentId == docId)
-            selectedDocumentId = "";
+        sortBy = e.Value?.ToString() ?? "recent";
+        ApplyFilters();
     }
 
-    private string GetFileIcon(string type)
+    private void ApplyFilters()
     {
-        return type switch
+        var result = documents.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(searchQuery))
         {
-            "pdf" => "📄",
-            "docx" => "📝",
-            "xlsx" => "📊",
-            "pptx" => "🎯",
-            "img" => "🖼️",
+            result = result.Where(d => d.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrEmpty(selectedCategory))
+        {
+            result = result.Where(d => d.Category == selectedCategory);
+        }
+
+        result = sortBy switch
+        {
+            "name" => result.OrderBy(d => d.Name),
+            "size" => result.OrderByDescending(d => d.Size),
+            "oldest" => result.OrderBy(d => d.UploadDate),
+            _ => result.OrderByDescending(d => d.UploadDate)
+        };
+
+        filteredDocuments = result.ToList();
+    }
+
+    private void SelectCategory(string category)
+    {
+        selectedCategory = selectedCategory == category ? "" : category;
+        ApplyFilters();
+    }
+
+    private void ClearFilters()
+    {
+        searchQuery = "";
+        selectedCategory = "";
+        sortBy = "recent";
+        ApplyFilters();
+    }
+
+    private void SelectDocument(DocumentItem doc)
+    {
+        // Navigate to document details
+    }
+
+    private void ViewDocument(DocumentItem doc)
+    {
+        // Open document viewer
+    }
+
+    private void EditDocument(DocumentItem doc)
+    {
+        // Open document editor
+    }
+
+    private void ShareDocument(DocumentItem doc)
+    {
+        // Show share modal
+    }
+
+    private void DownloadDocument(DocumentItem doc)
+    {
+        // Trigger download
+    }
+
+    private void DeleteDocument(DocumentItem doc)
+    {
+        documents.Remove(doc);
+        ApplyFilters();
+    }
+
+    private void OpenFolder(string folderName)
+    {
+        currentFolder = folderName;
+    }
+
+    private void DeleteFolder(string folderName)
+    {
+        folders.RemoveAll(f => f.Name == folderName);
+    }
+
+    private void ShowUploadModal()
+    {
+        // Show upload modal
+    }
+
+    private string GetFileIcon(string fileType)
+    {
+        return fileType switch
+        {
+            "pdf" => "📕",
+            "excel" => "📊",
+            "word" => "📝",
+            "powerpoint" => "🎯",
+            "zip" => "📦",
+            "text" => "📄",
+            "image" => "🖼️",
+            "video" => "🎬",
+            _ => "📄"
+        };
+    }
+
+    private string GetFileColor(string fileType)
+    {
+        return fileType switch
+        {
+            "pdf" => "#d32f2f",
+            "excel" => "#388e3c",
+            "word" => "#1976d2",
+            "powerpoint" => "#f57c00",
+            "zip" => "#7b1fa2",
+            "text" => "#616161",
+            "image" => "#00bcd4",
+            "video" => "#9c27b0",
+            _ => "#1f7e3a"
+        };
+    }
+
+    private string GetCategoryIcon(string category)
+    {
+        return category switch
+        {
+            "Work" => "💼",
+            "Personal" => "👤",
+            "Finance" => "💰",
+            "Legal" => "⚖️",
+            "Medical" => "🏥",
             _ => "📁"
         };
     }
 
-    private string GetFileColor(string type)
+    private string FormatFileSize(long bytes)
     {
-        return type switch
-        {
-            "pdf" => "#d32f2f",
-            "docx" => "#2196F3",
-            "xlsx" => "#1f7e3a",
-            "pptx" => "#f57c00",
-            "img" => "#9c27b0",
-            _ => "#757575"
-        };
+        if (bytes >= 1024 * 1024)
+            return $"{(double)bytes / (1024 * 1024):F2} MB";
+        return $"{(double)bytes / 1024:F2}";
     }
 
-    private void HandleView(DocumentModel doc)
+    private string GetRelativeTime(DateTime dateTime)
     {
-        Navigation.NavigateTo($"/document-viewer/{doc.Id}");
+        var timeSpan = DateTime.Now - dateTime;
+        if (timeSpan.TotalHours < 1)
+            return "Just now";
+        if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours}h ago";
+        if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays}d ago";
+        return dateTime.ToString("MMM dd");
     }
 
-    private void HandleEdit(DocumentModel doc)
+    public class DocumentItem
     {
-        Navigation.NavigateTo($"/document-editor/{doc.Id}");
-    }
-
-    private void HandleShare(DocumentModel doc)
-    {
-        // Show share modal/dialog
-        Console.WriteLine($"Share: {doc.Name}");
-    }
-
-    private void HandleDownload(DocumentModel doc)
-    {
-        // Trigger download
-        Console.WriteLine($"Download: {doc.Name}");
-    }
-
-    private void HandleDelete(DocumentModel doc)
-    {
-        documents.Remove(doc);
-    }
-
-    private void HandleUpload()
-    {
-        Navigation.NavigateTo("/document-upload");
-    }
-
-    public class DocumentModel
-    {
-        public string Id { get; set; }
+        public int Id { get; set; }
         public string Name { get; set; }
-        public string Type { get; set; }
-        public string Size { get; set; }
-        public DateTime ModifiedDate { get; set; }
-        public string Owner { get; set; }
+        public string FileType { get; set; }
+        public long Size { get; set; }
+        public DateTime UploadDate { get; set; }
+        public string Category { get; set; }
+        public string UploadedBy { get; set; }
+    }
+
+    public class FolderItem
+    {
+        public string Name { get; set; }
+        public int DocumentCount { get; set; }
+        public DateTime LastModified { get; set; }
     }
 }

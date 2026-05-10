@@ -1,5 +1,62 @@
-﻿@page "/"
+﻿@layout None
+@page "/"
 
-<h1>Hello, world!</h1>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="css/login.css" />
 
-Welcome to your new app.
+<div class="login-shell">
+
+    <!-- CLOSE BUTTON -->
+    <button type="button" class="close-btn" title="Close">
+        <i class="fas fa-times"></i>
+    </button>
+
+    <div class="login-container">
+
+        <!-- HEADER -->
+        <div class="login-header">
+            <img src="images/logo_afp.png" class="login-logo" />
+            <h1 class="login-title">DASM-AFP</h1>
+            <p class="login-subtitle">Login</p>
+        </div>
+
+        <!-- FORM -->
+        <form>
+
+            <!-- USERNAME -->
+            <div class="form-group">
+                <div class="input-wrapper">
+                    <i class="fas fa-user input-icon"></i>
+
+                    <input type="text"
+                           class="form-control"
+                           placeholder="Admin ID" />
+                </div>
+            </div>
+
+            <!-- PASSWORD -->
+            <div class="form-group">
+                <div class="input-wrapper password-wrapper">
+                    <i class="fas fa-lock input-icon"></i>
+
+                    <input type="password"
+                           class="form-control"
+                           placeholder="Password" />
+
+                    <button type="button"
+                            class="toggle-btn">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- BUTTON -->
+            <a href="/dashboard" class="btn btn-primary">
+                Log In
+            </a>
+
+        </form>
+
+    </div>
+
+</div>
