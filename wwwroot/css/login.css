@@ -11,6 +11,15 @@ body, html {
     overflow-y:hidden;
 }
 
+.login-error {
+    background: #ffe5e5;
+    color: #d60000;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    text-align: center;
+}
 
 
 /* CLOSE BUTTON */

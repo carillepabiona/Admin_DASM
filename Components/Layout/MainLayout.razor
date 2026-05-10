@@ -1,94 +1,237 @@
 ﻿@inherits LayoutComponentBase
 
+@using Microsoft.JSInterop
+@using System.Text.Json
+
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
 <div class="main-container">
-    <!-- Header -->
+
+    <!-- HEADER -->
     <header class="header">
+
+        <!-- LEFT -->
         <div class="header-left">
-            <img src="images/logo_afp.png" alt="DASM-AFP Logo" class="logo">
+
+            <img src="images/logo_afp.png"
+                 alt="DASM-AFP Logo"
+                 class="logo">
+
             <div class="header-branding">
                 <h1>DASM-AFP</h1>
                 <p>ARMED FORCES OF THE PHILIPPINES</p>
             </div>
+
         </div>
 
+        <!-- RIGHT -->
         <div class="header-right">
+
+            <!-- NOTIFICATION -->
             <div class="notification">
                 <i class="fas fa-bell"></i>
                 <span class="badge">3</span>
             </div>
+
+            <!-- USER INFO -->
             <div class="user-status">
-                <span class="status-label">null</span>
-                <span class="status-value">N/A</span>
+
+                <span class="user-username">
+                    @fullName
+                </span>
+
+                <span class="user-userrole">
+                    @roleName
+                </span>
+
             </div>
 
-            <!-- User Avatar with Dropdown -->
+            <!-- USER AVATAR -->
             <div class="user-menu-wrapper">
-                <button class="user-avatar" @onclick="@(() => ToggleUserMenu())">N</button>
+
+                <button class="user-avatar"
+                        @onclick="ToggleUserMenu">
+
+                    @avatarInitial
+
+                </button>
 
                 @if (showUserMenu)
                 {
                     <div class="user-dropdown-menu">
-                        <a href="/profile" class="dropdown-item profile-item">
+
+                        <!-- PROFILE -->
+                        <a href="/profile"
+                           class="dropdown-item profile-item">
+
                             <i class="fas fa-user"></i>
                             <span>Profile</span>
+
                         </a>
+
                         <div class="dropdown-divider"></div>
-                        <button class="dropdown-item logout-item" @onclick="@(() => HandleLogout())">
+
+                        <!-- LOGOUT -->
+                        <button class="dropdown-item logout-item"
+                                @onclick="HandleLogout">
+
                             <i class="fas fa-sign-out-alt"></i>
                             <span>Logout</span>
+
                         </button>
+
                     </div>
                 }
+
             </div>
+
         </div>
+
     </header>
 
-    <!-- Main Container -->
+    <!-- CONTENT -->
     <div class="content-wrapper">
-        <!-- Sidebar -->
+
+        <!-- SIDEBAR -->
         <aside class="sidebar">
+
             <nav class="nav-menu">
-                <NavLink href="/dashboard" class="nav-item" Match="NavLinkMatch.All">
+
+                <NavLink href="/dashboard"
+                         class="nav-item"
+                         Match="NavLinkMatch.All">
+
                     <i class="fas fa-chart-line"></i>
                     <span class="label">DASHBOARD</span>
+
                 </NavLink>
-                <NavLink href="/users" class="nav-item" Match="NavLinkMatch.All">
+
+                <NavLink href="/users"
+                         class="nav-item"
+                         Match="NavLinkMatch.All">
+
                     <i class="fas fa-users"></i>
                     <span class="label">USERS</span>
+
                 </NavLink>
-                <NavLink href="/documents" class="nav-item" Match="NavLinkMatch.All">
+
+                <NavLink href="/documents"
+                         class="nav-item"
+                         Match="NavLinkMatch.All">
+
                     <i class="fas fa-file-alt"></i>
                     <span class="label">DOCUMENTS</span>
+
                 </NavLink>
-                <NavLink href="/create-user" class="nav-item" Match="NavLinkMatch.All">
+
+                <NavLink href="/create-user"
+                         class="nav-item"
+                         Match="NavLinkMatch.All">
+
                     <i class="fas fa-user-plus"></i>
                     <span class="label">CREATE USER</span>
+
                 </NavLink>
+
             </nav>
+
         </aside>
 
-        <!-- Main Content -->
+        <!-- MAIN CONTENT -->
         <main class="main-content">
             @Body
         </main>
+
     </div>
+
 </div>
 
 @code {
+
     private bool showUserMenu = false;
 
-    [Inject]
-    private NavigationManager Navigation { get; set; }
+    // USER INFO
+    private string fullName = "Loading...";
+    private string roleName = "N/A";
+    private string avatarInitial = "?";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserSession();
+    }
+
+    private async Task LoadUserSession()
+    {
+        try
+        {
+            // GET SESSION FROM LOCAL STORAGE
+            var userJson = await JS.InvokeAsync<string>(
+                "localStorage.getItem",
+                "currentUser");
+
+            if (!string.IsNullOrEmpty(userJson))
+            {
+                var user = JsonSerializer.Deserialize<UserSession>(userJson);
+
+                if (user != null)
+                {
+                    // FULL NAME
+                    fullName = user.FullName;
+
+                    // ROLE
+                    roleName = user.RoleId switch
+                    {
+                        1 => "Administrator",
+                        2 => "Military Personnel",
+                        3 => "Civilian Personnel",
+                        _ => "Unknown Role"
+                    };
+
+                    // AVATAR INITIAL
+                    avatarInitial = !string.IsNullOrWhiteSpace(user.FullName)
+                        ? user.FullName.Substring(0, 1).ToUpper()
+                        : "?";
+                }
+            }
+            else
+            {
+                // NO LOGIN SESSION
+                Navigation.NavigateTo("/", true);
+            }
+        }
+        catch
+        {
+            Navigation.NavigateTo("/", true);
+        }
+    }
 
     private void ToggleUserMenu()
     {
         showUserMenu = !showUserMenu;
     }
 
-    private void HandleLogout()
+    private async Task HandleLogout()
     {
-        // Add your logout logic here (clear session, etc.)
+        // REMOVE USER SESSION
+        await JS.InvokeVoidAsync(
+            "localStorage.removeItem",
+            "currentUser");
+
         showUserMenu = false;
-        Navigation.NavigateTo("/", forceLoad: true);
+
+        Navigation.NavigateTo("/", true);
+    }
+
+    // USER SESSION MODEL
+    public class UserSession
+    {
+        public string Id { get; set; } = "";
+
+        public string Username { get; set; } = "";
+
+        public string FullName { get; set; } = "";
+
+        public int RoleId { get; set; }
     }
 }
