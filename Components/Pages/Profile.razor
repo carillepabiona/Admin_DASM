@@ -501,32 +501,93 @@
 
     private async Task HandleChangePassword()
     {
+        successMessage = "";
+
+        errorMessage = "";
+
+        // CHECK MATCH
         if (passwordModel.NewPassword !=
             passwordModel.ConfirmPassword)
         {
-            errorMessage = "Passwords do not match.";
-            successMessage = "";
+            errorMessage =
+                "Passwords do not match.";
+
             return;
         }
 
-        if (!IsPasswordStrong(passwordModel.NewPassword))
+        // CHECK STRENGTH
+        if (!IsPasswordStrong(
+            passwordModel.NewPassword))
         {
             errorMessage =
                 "Password does not meet requirements.";
 
-            successMessage = "";
-
             return;
         }
 
-        successMessage =
-            "Password updated successfully.";
+        try
+        {
+            // GET SESSION
+            var userJson = await JS.InvokeAsync<string>(
+                "localStorage.getItem",
+                "currentUser");
 
-        errorMessage = "";
+            if (string.IsNullOrEmpty(userJson))
+            {
+                errorMessage =
+                    "User session not found.";
 
-        ResetPasswordForm();
+                return;
+            }
 
-        await Task.CompletedTask;
+            var currentUser =
+                JsonSerializer.Deserialize<UserSession>(
+                    userJson);
+
+            if (currentUser == null)
+            {
+                errorMessage =
+                    "Invalid session.";
+
+                return;
+            }
+
+            // REQUEST
+            var request = new ChangePasswordRequest
+            {
+                CurrentPassword =
+                    passwordModel.CurrentPassword,
+
+                NewPassword =
+                    passwordModel.NewPassword
+            };
+
+            // API CALL
+            var response =
+                await Http.PutAsJsonAsync(
+                    $"https://localhost:7209/api/users/change-password/{currentUser.Id}",
+                    request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage =
+                    "Password updated successfully.";
+
+                errorMessage = "";
+
+                ResetPasswordForm();
+            }
+            else
+            {
+                errorMessage =
+                    await response.Content
+                        .ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
     }
 
     private bool IsPasswordStrong(string password)
@@ -546,24 +607,6 @@
     private void ResetPasswordForm()
     {
         passwordModel = new();
-    }
-
-    // PASSWORD MODEL
-    public class ChangePasswordModel
-    {
-        public string CurrentPassword { get; set; } = "";
-
-        public string NewPassword { get; set; } = "";
-
-        public string ConfirmPassword { get; set; } = "";
-    }
-
-    // UPDATE PROFILE REQUEST
-    public class UpdateProfileRequest
-    {
-        public string ContactNumber { get; set; } = "";
-
-        public string Address { get; set; } = "";
     }
 
 }
