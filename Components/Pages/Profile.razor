@@ -1,0 +1,445 @@
+﻿@page "/profile"
+@using Admin_DASM.Models
+@using System.Text.RegularExpressions
+@using Microsoft.JSInterop
+@using System.Text.Json
+
+@inject IJSRuntime JS
+
+<head>
+    <link rel="stylesheet" href="css/settings.css" />
+</head>
+
+<div class="settings-container">
+
+    <!-- HEADER -->
+    <div class="settings-header">
+        <h1>Profile</h1>
+        <p class="subtitle">
+            Manage your account and preferences
+        </p>
+    </div>
+
+    <!-- LAYOUT -->
+    <div class="settings-layout">
+
+        <!-- SIDEBAR -->
+        <aside class="settings-sidebar">
+
+            <nav class="settings-nav">
+
+                <button class="nav-item @(activeTab == "account" ? "active" : "")"
+                        @onclick="@(() => SetTab("account"))">
+
+                    👤 Account
+
+                </button>
+
+                <button class="nav-item @(activeTab == "security" ? "active" : "")"
+                        @onclick="@(() => SetTab("security"))">
+
+                    🔒 Security
+
+                </button>
+
+                <button class="nav-item @(activeTab == "notifications" ? "active" : "")"
+                        @onclick="@(() => SetTab("notifications"))">
+
+                    🔔 Notifications
+
+                </button>
+
+                <button class="nav-item @(activeTab == "appearance" ? "active" : "")"
+                        @onclick="@(() => SetTab("appearance"))">
+
+                    🎨 Appearance
+
+                </button>
+
+                <button class="nav-item @(activeTab == "privacy" ? "active" : "")"
+                        @onclick="@(() => SetTab("privacy"))">
+
+                    🛡️ Privacy
+
+                </button>
+
+            </nav>
+
+        </aside>
+
+        <!-- CONTENT -->
+        <main class="settings-content">
+
+            <!-- ACCOUNT -->
+            @if (activeTab == "account")
+            {
+                <div class="settings-section">
+
+                    <h2>Account Information</h2>
+
+                    <p class="section-subtitle">
+                        Update your account details
+                    </p>
+
+                    <!-- PROFILE CARD -->
+                    <div class="profile-card">
+
+                        <div class="profile-header">
+
+                            <!-- AVATAR -->
+                            <div class="profile-avatar">
+                                @avatarInitial
+                            </div>
+
+                            <!-- INFO -->
+                            <div class="profile-info">
+
+                                <h3>@userProfile.FullName</h3>
+
+                                <p>@userProfile.Email</p>
+
+                            </div>
+
+                            <button class="btn btn-outline"
+                                    @onclick="@(() => HandleEditProfile())">
+
+                                Edit Profile
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <!-- USERNAME -->
+                    <div class="setting-item">
+
+                        <div class="setting-label">
+
+                            <h4>Username</h4>
+
+                            <p>@userProfile.Username</p>
+
+                        </div>
+
+                    </div>
+
+                    <!-- EMAIL -->
+                    <div class="setting-item">
+
+                        <div class="setting-label">
+
+                            <h4>Email Address</h4>
+
+                            <p>@userProfile.Email</p>
+
+                        </div>
+
+                    </div>
+
+                    <!-- CONTACT -->
+                    <div class="setting-item">
+
+                        <div class="setting-label">
+
+                            <h4>Contact Number</h4>
+
+                            <p>@userProfile.ContactNumber</p>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ADDRESS -->
+                    <div class="setting-item">
+
+                        <div class="setting-label">
+
+                            <h4>Address</h4>
+
+                            <p>@userProfile.Address</p>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ROLE -->
+                    <div class="setting-item">
+
+                        <div class="setting-label">
+
+                            <h4>Role</h4>
+
+                            <p>@userProfile.Role</p>
+
+                        </div>
+
+                    </div>
+
+                    <!-- CREATED -->
+                    <div class="setting-item">
+
+                        <div class="setting-label">
+
+                            <h4>Account Created</h4>
+
+                            <p>@userProfile.CreatedDate.ToString("MMMM dd, yyyy")</p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+            <!-- SECURITY -->
+            @if (activeTab == "security")
+            {
+                <div class="settings-section">
+
+                    <h2>Security</h2>
+
+                    <p class="section-subtitle">
+                        Manage your security preferences
+                    </p>
+
+                    <div class="security-card">
+
+                        <div class="card-header">
+
+                            <h3>🔐 Change Password</h3>
+
+                            <p>
+                                Update your password to keep your account secure
+                            </p>
+
+                        </div>
+
+                        <EditForm Model="@passwordModel"
+                                  OnValidSubmit="@HandleChangePassword">
+
+                            <DataAnnotationsValidator />
+
+                            <!-- CURRENT PASSWORD -->
+                            <div class="form-group">
+
+                                <label>
+                                    Current Password
+                                </label>
+
+                                <InputText type="password"
+                                           @bind-Value="@passwordModel.CurrentPassword"
+                                           class="form-control" />
+
+                            </div>
+
+                            <!-- NEW PASSWORD -->
+                            <div class="form-group">
+
+                                <label>
+                                    New Password
+                                </label>
+
+                                <InputText type="password"
+                                           @bind-Value="@passwordModel.NewPassword"
+                                           class="form-control" />
+
+                            </div>
+
+                            <!-- CONFIRM -->
+                            <div class="form-group">
+
+                                <label>
+                                    Confirm Password
+                                </label>
+
+                                <InputText type="password"
+                                           @bind-Value="@passwordModel.ConfirmPassword"
+                                           class="form-control" />
+
+                            </div>
+
+                            <!-- BUTTONS -->
+                            <div class="form-actions">
+
+                                <button type="submit"
+                                        class="btn btn-primary">
+
+                                    Update Password
+
+                                </button>
+
+                                <button type="button"
+                                        class="btn btn-secondary"
+                                        @onclick="@(() => ResetPasswordForm())">
+
+                                    Cancel
+
+                                </button>
+
+                            </div>
+
+                            <!-- SUCCESS -->
+                            @if (!string.IsNullOrEmpty(successMessage))
+                            {
+                                <div class="alert alert-success">
+                                    @successMessage
+                                </div>
+                            }
+
+                            <!-- ERROR -->
+                            @if (!string.IsNullOrEmpty(errorMessage))
+                            {
+                                <div class="alert alert-error">
+                                    @errorMessage
+                                </div>
+                            }
+
+                        </EditForm>
+
+                    </div>
+
+                </div>
+            }
+
+        </main>
+
+    </div>
+
+</div>
+
+@code {
+
+    private string activeTab = "account";
+
+    private ChangePasswordModel passwordModel = new();
+
+    private UserProfileModel userProfile = new();
+
+    private string avatarInitial = "?";
+
+    private string successMessage = "";
+
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // GET USER SESSION
+        var userJson = await JS.InvokeAsync<string>(
+            "localStorage.getItem",
+            "currentUser");
+
+        if (!string.IsNullOrEmpty(userJson))
+        {
+            var currentUser =
+                JsonSerializer.Deserialize<UserSession>(userJson);
+
+            if (currentUser != null)
+            {
+                userProfile = new UserProfileModel
+                {
+                    FullName = currentUser.FullName,
+                    Username = currentUser.Username,
+                    Email = currentUser.Email,
+                    ContactNumber = currentUser.ContactNumber,
+                    Address = currentUser.Address,
+
+                    Role = currentUser.RoleId switch
+                    {
+                        1 => "Administrator",
+                        2 => "Military Personnel",
+                        3 => "Civilian Personnel",
+                        _ => "Unknown Role"
+                    },
+
+                    CreatedDate = currentUser.CreatedAt
+                };
+
+                // AVATAR
+                avatarInitial = !string.IsNullOrWhiteSpace(
+                    currentUser.FullName)
+                    ? currentUser.FullName
+                        .Substring(0, 1)
+                        .ToUpper()
+                    : "?";
+            }
+        }
+    }
+
+    // CHANGE TAB
+    private void SetTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    // CHANGE PASSWORD
+    private async Task HandleChangePassword()
+    {
+        if (passwordModel.NewPassword !=
+            passwordModel.ConfirmPassword)
+        {
+            errorMessage = "Passwords do not match.";
+            successMessage = "";
+            return;
+        }
+
+        if (!IsPasswordStrong(passwordModel.NewPassword))
+        {
+            errorMessage =
+                "Password does not meet requirements.";
+            successMessage = "";
+            return;
+        }
+
+        // TODO:
+        // CALL API HERE
+
+        successMessage =
+            "Password updated successfully.";
+
+        errorMessage = "";
+
+        ResetPasswordForm();
+
+        await Task.CompletedTask;
+    }
+
+    // PASSWORD VALIDATION
+    private bool IsPasswordStrong(string password)
+    {
+        if (string.IsNullOrEmpty(password) ||
+            password.Length < 8)
+            return false;
+
+        return Regex.IsMatch(password, "[A-Z]") &&
+               Regex.IsMatch(password, "[a-z]") &&
+               Regex.IsMatch(password, "[0-9]") &&
+               Regex.IsMatch(
+                   password,
+                   "[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]");
+    }
+
+    // RESET FORM
+    private void ResetPasswordForm()
+    {
+        passwordModel = new();
+    }
+
+    // EDIT PROFILE
+    private void HandleEditProfile()
+    {
+        Console.WriteLine("Edit profile");
+    }
+
+    // PASSWORD MODEL
+    public class ChangePasswordModel
+    {
+        public string CurrentPassword { get; set; } = "";
+
+        public string NewPassword { get; set; } = "";
+
+        public string ConfirmPassword { get; set; } = "";
+    }
+
+    
+}

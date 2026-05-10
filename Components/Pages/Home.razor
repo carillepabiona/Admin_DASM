@@ -9,22 +9,39 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-<link rel="stylesheet" href="css/login.css" />
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<link rel="stylesheet"
+      href="css/login.css" />
 
 <div class="login-shell">
 
-    <button type="button" class="close-btn" title="Close">
+    <!-- CLOSE BUTTON -->
+    <button type="button"
+            class="close-btn"
+            title="Close">
+
         <i class="fas fa-times"></i>
+
     </button>
 
     <div class="login-container">
 
         <!-- HEADER -->
         <div class="login-header">
-            <img src="images/logo_afp.png" class="login-logo" />
-            <h1 class="login-title">DASM-AFP</h1>
-            <p class="login-subtitle">Admin Login</p>
+
+            <img src="images/logo_afp.png"
+                 class="login-logo" />
+
+            <h1 class="login-title">
+                DASM-AFP
+            </h1>
+
+            <p class="login-subtitle">
+                Admin Login
+            </p>
+
         </div>
 
         <!-- FORM -->
@@ -32,6 +49,7 @@
 
             <!-- USERNAME -->
             <div class="form-group">
+
                 <div class="input-wrapper">
 
                     <i class="fas fa-user input-icon"></i>
@@ -42,10 +60,12 @@
                            @bind="loginModel.Username" />
 
                 </div>
+
             </div>
 
             <!-- PASSWORD -->
             <div class="form-group">
+
                 <div class="input-wrapper password-wrapper">
 
                     <i class="fas fa-lock input-icon"></i>
@@ -55,6 +75,7 @@
                            placeholder="Password"
                            @bind="loginModel.Password" />
 
+                    <!-- TOGGLE -->
                     <button type="button"
                             class="toggle-btn"
                             @onclick="TogglePassword">
@@ -64,6 +85,7 @@
                     </button>
 
                 </div>
+
             </div>
 
             <!-- ERROR -->
@@ -74,9 +96,12 @@
                 </div>
             }
 
-            <!-- LOGIN BUTTON -->
-            <button type="submit" class="btn btn-primary">
+            <!-- BUTTON -->
+            <button type="submit"
+                    class="btn btn-primary">
+
                 Log In
+
             </button>
 
         </form>
@@ -107,14 +132,30 @@
                 "https://localhost:7209/api/auth/login",
                 loginModel);
 
+            // SUCCESS
             if (response.IsSuccessStatusCode)
             {
-                var user = await response.Content
-                    .ReadFromJsonAsync<UserSession>();
+                // READ RAW JSON
+                var json =
+                    await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine(json);
+
+                // CASE INSENSITIVE
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                // DESERIALIZE
+                var user =
+                    JsonSerializer.Deserialize<UserSession>(
+                        json,
+                        options);
 
                 if (user != null)
                 {
-                    // SAVE USER SESSION
+                    // SAVE TO LOCAL STORAGE
                     await JS.InvokeVoidAsync(
                         "localStorage.setItem",
                         "currentUser",
@@ -123,10 +164,16 @@
                     // REDIRECT
                     Nav.NavigateTo("/dashboard");
                 }
+                else
+                {
+                    errorMessage =
+                        "Unable to load user information.";
+                }
             }
             else
             {
-                errorMessage = await response.Content.ReadAsStringAsync();
+                errorMessage =
+                    await response.Content.ReadAsStringAsync();
             }
         }
         catch (Exception ex)
@@ -135,16 +182,19 @@
         }
     }
 
+    // TOGGLE PASSWORD
     private void TogglePassword()
     {
         if (passwordInputType == "password")
         {
             passwordInputType = "text";
+
             passwordIcon = "fas fa-eye-slash";
         }
         else
         {
             passwordInputType = "password";
+
             passwordIcon = "fas fa-eye";
         }
     }
@@ -162,12 +212,20 @@
     // USER SESSION
     public class UserSession
     {
-        public string Id { get; set; } = "";
+        public Guid Id { get; set; }
 
         public string Username { get; set; } = "";
 
         public string FullName { get; set; } = "";
 
+        public string Email { get; set; } = "";
+
+        public string ContactNumber { get; set; } = "";
+
+        public string Address { get; set; } = "";
+
         public int RoleId { get; set; }
+
+        public DateTime CreatedAt { get; set; }
     }
 }
