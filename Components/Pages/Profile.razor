@@ -1,10 +1,13 @@
 ﻿@page "/profile"
+
 @using Admin_DASM.Models
 @using System.Text.RegularExpressions
 @using Microsoft.JSInterop
 @using System.Text.Json
+@using System.Net.Http.Json
 
 @inject IJSRuntime JS
+@inject HttpClient Http
 
 <head>
     <link rel="stylesheet" href="css/settings.css" />
@@ -39,27 +42,6 @@
                         @onclick="@(() => SetTab("security"))">
 
                     🔒 Security
-
-                </button>
-
-                <button class="nav-item @(activeTab == "notifications" ? "active" : "")"
-                        @onclick="@(() => SetTab("notifications"))">
-
-                    🔔 Notifications
-
-                </button>
-
-                <button class="nav-item @(activeTab == "appearance" ? "active" : "")"
-                        @onclick="@(() => SetTab("appearance"))">
-
-                    🎨 Appearance
-
-                </button>
-
-                <button class="nav-item @(activeTab == "privacy" ? "active" : "")"
-                        @onclick="@(() => SetTab("privacy"))">
-
-                    🛡️ Privacy
 
                 </button>
 
@@ -100,12 +82,16 @@
 
                             </div>
 
-                            <button class="btn btn-outline"
-                                    @onclick="@(() => HandleEditProfile())">
+                            <!-- EDIT BUTTON -->
+                            @if (!isEditingProfile)
+                            {
+                                <button class="btn btn-outline"
+                                        @onclick="EnableEditProfile">
 
-                                Edit Profile
+                                    Edit Profile
 
-                            </button>
+                                </button>
+                            }
 
                         </div>
 
@@ -144,7 +130,15 @@
 
                             <h4>Contact Number</h4>
 
-                            <p>@userProfile.ContactNumber</p>
+                            @if (isEditingProfile)
+                            {
+                                <InputText class="form-control"
+                                           @bind-Value="userProfile.ContactNumber" />
+                            }
+                            else
+                            {
+                                <p>@userProfile.ContactNumber</p>
+                            }
 
                         </div>
 
@@ -157,7 +151,15 @@
 
                             <h4>Address</h4>
 
-                            <p>@userProfile.Address</p>
+                            @if (isEditingProfile)
+                            {
+                                <InputText class="form-control"
+                                           @bind-Value="userProfile.Address" />
+                            }
+                            else
+                            {
+                                <p>@userProfile.Address</p>
+                            }
 
                         </div>
 
@@ -183,11 +185,51 @@
 
                             <h4>Account Created</h4>
 
-                            <p>@userProfile.CreatedDate.ToString("MMMM dd, yyyy")</p>
+                            <p>
+                                @userProfile.CreatedDate.ToString("MMMM dd, yyyy")
+                            </p>
 
                         </div>
 
                     </div>
+
+                    <!-- ACTION BUTTONS -->
+                    @if (isEditingProfile)
+                    {
+                        <div class="form-actions">
+
+                            <button class="btn btn-primary"
+                                    @onclick="SaveProfile">
+
+                                Save Changes
+
+                            </button>
+
+                            <button class="btn btn-secondary"
+                                    @onclick="CancelEditProfile">
+
+                                Cancel
+
+                            </button>
+
+                        </div>
+                    }
+
+                    <!-- SUCCESS -->
+                    @if (!string.IsNullOrEmpty(profileSuccessMessage))
+                    {
+                        <div class="alert alert-success">
+                            @profileSuccessMessage
+                        </div>
+                    }
+
+                    <!-- ERROR -->
+                    @if (!string.IsNullOrEmpty(profileErrorMessage))
+                    {
+                        <div class="alert alert-error">
+                            @profileErrorMessage
+                        </div>
+                    }
 
                 </div>
             }
@@ -322,9 +364,14 @@
 
     private string errorMessage = "";
 
+    private bool isEditingProfile = false;
+
+    private string profileSuccessMessage = "";
+
+    private string profileErrorMessage = "";
+
     protected override async Task OnInitializedAsync()
     {
-        // GET USER SESSION
         var userJson = await JS.InvokeAsync<string>(
             "localStorage.getItem",
             "currentUser");
@@ -338,6 +385,7 @@
             {
                 userProfile = new UserProfileModel
                 {
+                    Id = currentUser.Id,
                     FullName = currentUser.FullName,
                     Username = currentUser.Username,
                     Email = currentUser.Email,
@@ -355,24 +403,102 @@
                     CreatedDate = currentUser.CreatedAt
                 };
 
-                // AVATAR
-                avatarInitial = !string.IsNullOrWhiteSpace(
-                    currentUser.FullName)
-                    ? currentUser.FullName
-                        .Substring(0, 1)
-                        .ToUpper()
+                avatarInitial =
+                    !string.IsNullOrWhiteSpace(currentUser.FullName)
+                    ? currentUser.FullName.Substring(0, 1).ToUpper()
                     : "?";
             }
         }
     }
 
-    // CHANGE TAB
     private void SetTab(string tab)
     {
         activeTab = tab;
     }
 
-    // CHANGE PASSWORD
+    private void EnableEditProfile()
+    {
+        isEditingProfile = true;
+
+        profileSuccessMessage = "";
+
+        profileErrorMessage = "";
+    }
+
+    private void CancelEditProfile()
+    {
+        isEditingProfile = false;
+
+        profileSuccessMessage = "";
+
+        profileErrorMessage = "";
+    }
+
+    private async Task SaveProfile()
+    {
+        try
+        {
+            var userJson = await JS.InvokeAsync<string>(
+                "localStorage.getItem",
+                "currentUser");
+
+            if (string.IsNullOrEmpty(userJson))
+            {
+                profileErrorMessage = "User session not found.";
+                return;
+            }
+
+            var currentUser =
+                JsonSerializer.Deserialize<UserSession>(userJson);
+
+            if (currentUser == null)
+            {
+                profileErrorMessage = "Invalid user session.";
+                return;
+            }
+
+            var updateRequest = new UpdateProfileRequest
+            {
+                ContactNumber = userProfile.ContactNumber,
+                Address = userProfile.Address
+            };
+
+            var response = await Http.PutAsJsonAsync(
+                $"https://localhost:7209/api/users/update-profile/{currentUser.Id}",
+                updateRequest);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                profileErrorMessage =
+                    await response.Content.ReadAsStringAsync();
+
+                return;
+            }
+
+            currentUser.ContactNumber =
+                userProfile.ContactNumber;
+
+            currentUser.Address =
+                userProfile.Address;
+
+            await JS.InvokeVoidAsync(
+                "localStorage.setItem",
+                "currentUser",
+                JsonSerializer.Serialize(currentUser));
+
+            profileSuccessMessage =
+                "Profile updated successfully.";
+
+            profileErrorMessage = "";
+
+            isEditingProfile = false;
+        }
+        catch (Exception ex)
+        {
+            profileErrorMessage = ex.Message;
+        }
+    }
+
     private async Task HandleChangePassword()
     {
         if (passwordModel.NewPassword !=
@@ -387,12 +513,11 @@
         {
             errorMessage =
                 "Password does not meet requirements.";
+
             successMessage = "";
+
             return;
         }
-
-        // TODO:
-        // CALL API HERE
 
         successMessage =
             "Password updated successfully.";
@@ -404,7 +529,6 @@
         await Task.CompletedTask;
     }
 
-    // PASSWORD VALIDATION
     private bool IsPasswordStrong(string password)
     {
         if (string.IsNullOrEmpty(password) ||
@@ -419,16 +543,9 @@
                    "[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]");
     }
 
-    // RESET FORM
     private void ResetPasswordForm()
     {
         passwordModel = new();
-    }
-
-    // EDIT PROFILE
-    private void HandleEditProfile()
-    {
-        Console.WriteLine("Edit profile");
     }
 
     // PASSWORD MODEL
@@ -441,5 +558,12 @@
         public string ConfirmPassword { get; set; } = "";
     }
 
-    
+    // UPDATE PROFILE REQUEST
+    public class UpdateProfileRequest
+    {
+        public string ContactNumber { get; set; } = "";
+
+        public string Address { get; set; } = "";
+    }
+
 }

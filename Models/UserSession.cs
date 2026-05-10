@@ -6,7 +6,7 @@ namespace Admin_DASM.Models
 {
     public class UserSession
     {
-        public string Id { get; set; } = "";
+        public Guid Id { get; set; }
 
         public string Username { get; set; } = "";
 
