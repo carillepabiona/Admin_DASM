@@ -32,7 +32,9 @@
     }
 
     <EditForm Model="@userModel" OnValidSubmit="@HandleSubmit">
+
         <DataAnnotationsValidator />
+
         <ValidationSummary />
 
         <!-- USER INFORMATION -->
@@ -133,6 +135,7 @@
 
                 <!-- ACCESS LEVEL -->
                 <div class="form-group">
+
                     <label>ACCESS LEVEL</label>
 
                     <InputSelect @bind-Value="userModel.AccessLevelId"
@@ -142,20 +145,25 @@
                             Select Access Level
                         </option>
 
-                        @foreach (var access in accessLevels)
+                        @if (accessLevels != null && accessLevels.Any())
                         {
-                            <option value="@access.Id">
-                                @access.Name
-                            </option>
+                            @foreach (var access in accessLevels)
+                            {
+                                <option value="@access.Id">
+                                    @access.Name
+                                </option>
+                            }
                         }
 
                     </InputSelect>
 
                     <ValidationMessage For="@(() => userModel.AccessLevelId)" />
+
                 </div>
 
                 <!-- ROLE -->
                 <div class="form-group">
+
                     <label>ROLE</label>
 
                     <InputSelect @bind-Value="userModel.RoleId"
@@ -165,16 +173,20 @@
                             Select Role
                         </option>
 
-                        @foreach (var role in roles)
+                        @if (roles != null && roles.Any())
                         {
-                            <option value="@role.Id">
-                                @role.Name
-                            </option>
+                            @foreach (var role in roles)
+                            {
+                                <option value="@role.Id">
+                                    @role.Name
+                                </option>
+                            }
                         }
 
                     </InputSelect>
 
                     <ValidationMessage For="@(() => userModel.RoleId)" />
+
                 </div>
 
             </div>
@@ -238,17 +250,43 @@
     {
         userModel.UserCode = GenerateUserCode();
 
+        userModel.IsActive = true;
+
         await LoadRoles();
 
         await LoadAccessLevels();
     }
 
+    // =========================
+    // LOAD ROLES
+    // =========================
+
     private async Task LoadRoles()
     {
         try
         {
-            roles = await Http.GetFromJsonAsync<List<RoleDto>>(
-                "api/roles") ?? new();
+            var response = await Http.GetAsync(
+                "https://localhost:7209/api/roles");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage =
+                    $"Failed to load roles. Status: {response.StatusCode}";
+
+                return;
+            }
+
+            var json =
+                await response.Content.ReadAsStringAsync();
+
+            Console.WriteLine("ROLES JSON:");
+            Console.WriteLine(json);
+
+            roles =
+                await response.Content.ReadFromJsonAsync<List<RoleDto>>()
+                ?? new();
+
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -256,27 +294,62 @@
         }
     }
 
+    // =========================
+    // LOAD ACCESS LEVELS
+    // =========================
+
     private async Task LoadAccessLevels()
     {
         try
         {
-            accessLevels = await Http.GetFromJsonAsync<List<AccessLevelDto>>(
-                "api/accesslevels") ?? new();
+            var response = await Http.GetAsync(
+                "https://localhost:7209/api/accesslevels");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage =
+                    $"Failed to load access levels. Status: {response.StatusCode}";
+
+                return;
+            }
+
+            var json =
+                await response.Content.ReadAsStringAsync();
+
+            Console.WriteLine("ACCESS LEVELS JSON:");
+            Console.WriteLine(json);
+
+            accessLevels =
+                await response.Content
+                    .ReadFromJsonAsync<List<AccessLevelDto>>()
+                ?? new();
+
+            StateHasChanged();
         }
         catch (Exception ex)
         {
-            errorMessage = $"Failed to load access levels: {ex.Message}";
+            errorMessage =
+                $"Failed to load access levels: {ex.Message}";
         }
     }
+
+    // =========================
+    // GENERATE USER CODE
+    // =========================
 
     private string GenerateUserCode()
     {
         return $"USR-{DateTime.Now:yyyyMMddHHmmss}";
     }
 
+    // =========================
+    // SUBMIT
+    // =========================
+
     private async Task HandleSubmit()
     {
         successMessage = "";
+
         errorMessage = "";
 
         if (!IsPasswordStrong(userModel.Password))
@@ -292,12 +365,13 @@
             isLoading = true;
 
             var response = await Http.PostAsJsonAsync(
-                "api/users",
+                "https://localhost:7209/api/users",
                 userModel);
 
             if (response.IsSuccessStatusCode)
             {
-                successMessage = "User created successfully.";
+                successMessage =
+                    "User created successfully.";
 
                 ClearForm();
             }
@@ -317,6 +391,10 @@
         }
     }
 
+    // =========================
+    // PASSWORD VALIDATION
+    // =========================
+
     private bool IsPasswordStrong(string password)
     {
         if (string.IsNullOrWhiteSpace(password))
@@ -325,18 +403,25 @@
         if (password.Length < 8)
             return false;
 
-        bool hasUpperCase = Regex.IsMatch(password, "[A-Z]");
+        bool hasUpperCase =
+            Regex.IsMatch(password, "[A-Z]");
 
-        bool hasLowerCase = Regex.IsMatch(password, "[a-z]");
+        bool hasLowerCase =
+            Regex.IsMatch(password, "[a-z]");
 
-        bool hasSpecialChar = Regex.IsMatch(
-            password,
-            "[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]");
+        bool hasSpecialChar =
+            Regex.IsMatch(
+                password,
+                "[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]");
 
         return hasUpperCase &&
                hasLowerCase &&
                hasSpecialChar;
     }
+
+    // =========================
+    // CLEAR FORM
+    // =========================
 
     private void ClearForm()
     {
