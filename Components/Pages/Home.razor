@@ -9,11 +9,8 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
-<link rel="stylesheet"
-      href="css/login.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<link rel="stylesheet" href="css/login.css" />
 
 <div class="login-shell">
 
@@ -56,7 +53,7 @@
 
                     <input type="text"
                            class="form-control"
-                           placeholder="Username"
+                           placeholder="Admin ID"
                            @bind="loginModel.Username" />
 
                 </div>
@@ -96,7 +93,7 @@
                 </div>
             }
 
-            <!-- BUTTON -->
+            <!-- LOGIN BUTTON -->
             <button type="submit"
                     class="btn btn-primary">
 
@@ -129,45 +126,41 @@
         try
         {
             var response = await Http.PostAsJsonAsync(
-                "http://10.123.35.251:5043/api/auth/login",
+                "http://192.168.11.10:5043/api/auth/login",
                 loginModel);
 
-            // SUCCESS
             if (response.IsSuccessStatusCode)
             {
-                // READ RAW JSON
-                var json =
-                    await response.Content.ReadAsStringAsync();
-
-                Console.WriteLine(json);
-
-                // CASE INSENSITIVE
-                var options = new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-
-                // DESERIALIZE
-                var user =
-                    JsonSerializer.Deserialize<UserSession>(
-                        json,
-                        options);
+                var user = await response.Content
+                    .ReadFromJsonAsync<UserSession>();
 
                 if (user != null)
                 {
-                    // SAVE TO LOCAL STORAGE
+                    // SAVE USER SESSION
                     await JS.InvokeVoidAsync(
                         "localStorage.setItem",
                         "currentUser",
                         JsonSerializer.Serialize(user));
 
-                    // REDIRECT
+                    // SAVE USER LEVEL ACCESS
+                    await JS.InvokeVoidAsync(
+                        "localStorage.setItem",
+                        "userLevel",
+                        user.LevelAccess);
+
+                    // SAVE USER ID
+                    await JS.InvokeVoidAsync(
+                        "localStorage.setItem",
+                        "userId",
+                        user.Id.ToString());
+
+                    // SAVE USERNAME
+                    await JS.InvokeVoidAsync(
+                        "localStorage.setItem",
+                        "username",
+                        user.Username);
+
                     Nav.NavigateTo("/dashboard");
-                }
-                else
-                {
-                    errorMessage =
-                        "Unable to load user information.";
                 }
             }
             else
@@ -182,19 +175,16 @@
         }
     }
 
-    // TOGGLE PASSWORD
     private void TogglePassword()
     {
         if (passwordInputType == "password")
         {
             passwordInputType = "text";
-
             passwordIcon = "fas fa-eye-slash";
         }
         else
         {
             passwordInputType = "password";
-
             passwordIcon = "fas fa-eye";
         }
     }
@@ -206,8 +196,9 @@
 
         public string Password { get; set; } = "";
 
+        // Admin or Personnel
         public string AppType { get; set; } = "";
     }
 
-    
+   
 }

@@ -21,5 +21,6 @@ namespace Admin_DASM.Models
         public int RoleId { get; set; }
 
         public DateTime CreatedAt { get; set; }
+        public string LevelAccess { get; set; } = "";
     }
 }
