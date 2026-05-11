@@ -86,8 +86,12 @@
     <!-- Breadcrumb -->
     <div class="breadcrumb">
 
-        <span class="breadcrumb-item active">
+        <span class="breadcrumb-item active"
+              @onclick="GoHome"
+              style="cursor:pointer">
+
             📁 My Documents
+
         </span>
 
         @if (!string.IsNullOrEmpty(currentFolder))
@@ -129,7 +133,7 @@
             @foreach (var folder in folders)
             {
                 <div class="folder-card"
-                     @onclick="@(() => OpenFolder(folder.Name))">
+                     @onclick="@(() => OpenFolder(folder.Id, folder.Name))">
 
                     <div class="folder-icon">
 
@@ -338,7 +342,8 @@
         </div>
     }
     else if (!string.IsNullOrEmpty(searchQuery)
-    || !string.IsNullOrEmpty(selectedCategory))
+    || !string.IsNullOrEmpty(selectedCategory)
+    || currentFolderId != null)
     {
         <div class="empty-state">
 
@@ -398,6 +403,8 @@
     private string selectedCategory = "";
 
     private string currentFolder = "";
+
+    private Guid? currentFolderId = null;
 
     private string sortBy = "recent";
 
@@ -489,8 +496,7 @@
 
                         DocumentCount = x.FileCount,
 
-                        LastModified =
-                            x.LastModified
+                        LastModified = x.LastModified
                     }).ToList();
             }
         }
@@ -527,7 +533,7 @@
     }
 
     // =========================================
-    // FILTER
+    // FILTER DOCUMENTS
     // =========================================
 
     private void FilterDocuments(string query)
@@ -555,10 +561,30 @@
 
     private void ApplyFilters()
     {
-        var result =
-            documents.AsEnumerable();
+        IEnumerable<DocumentItem> result = documents;
 
+        // =====================================
+        // FILTER BY FOLDER
+        // =====================================
+
+        if (currentFolderId != null)
+        {
+            result =
+                result.Where(x =>
+                    x.FolderId == currentFolderId);
+        }
+        else
+        {
+            // ROOT DOCUMENTS ONLY
+            result =
+                result.Where(x =>
+                    x.FolderId == null);
+        }
+
+        // =====================================
         // SEARCH
+        // =====================================
+
         if (!string.IsNullOrWhiteSpace(searchQuery))
         {
             result =
@@ -568,7 +594,10 @@
                         StringComparison.OrdinalIgnoreCase));
         }
 
+        // =====================================
         // CATEGORY
+        // =====================================
+
         if (!string.IsNullOrWhiteSpace(selectedCategory))
         {
             result =
@@ -576,15 +605,10 @@
                     x.Category == selectedCategory);
         }
 
-        // FOLDER
-        if (!string.IsNullOrWhiteSpace(currentFolder))
-        {
-            result =
-                result.Where(x =>
-                    x.FilePath.Contains(currentFolder));
-        }
+        // =====================================
+        // SORTING
+        // =====================================
 
-        // SORT
         result = sortBy switch
         {
             "name" =>
@@ -602,6 +626,32 @@
 
         filteredDocuments =
             result.ToList();
+    }
+
+    // =========================================
+    // OPEN FOLDER
+    // =========================================
+
+    private void OpenFolder(Guid folderId, string folderName)
+    {
+        currentFolderId = folderId;
+
+        currentFolder = folderName;
+
+        ApplyFilters();
+    }
+
+    // =========================================
+    // GO BACK TO ROOT
+    // =========================================
+
+    private void GoHome()
+    {
+        currentFolderId = null;
+
+        currentFolder = "";
+
+        ApplyFilters();
     }
 
     // =========================================
@@ -625,6 +675,8 @@
         selectedCategory = "";
 
         currentFolder = "";
+
+        currentFolderId = null;
 
         sortBy = "recent";
 
@@ -664,15 +716,8 @@
     }
 
     // =========================================
-    // FOLDER ACTIONS
+    // DELETE FOLDER
     // =========================================
-
-    private void OpenFolder(string folderName)
-    {
-        currentFolder = folderName;
-
-        ApplyFilters();
-    }
 
     private async Task DeleteFolder(Guid id)
     {
@@ -680,6 +725,8 @@
             $"http://192.168.11.10:5043/api/folders/{id}");
 
         await LoadFolders();
+
+        await LoadDocuments();
     }
 
     private void ShowUploadModal()
