@@ -1,587 +1,256 @@
 ﻿@page "/dashboard"
 @using System.Net.Http.Json
 @inject HttpClient Http
-
+@using Admin_DASM.Services
+@inject CurrentUserService CurrentUserService
 <link rel="stylesheet" href="css/dashboard.css">
 
 <div class="dashboard-container">
-    <!-- Welcome Section -->
+
+    <!-- Welcome Section with Background -->
     <div class="welcome-section">
-        <h1>Welcome back, Admin!</h1>
-        <p>Manage your document management system</p>
+        <div class="welcome-content">
+            <div class="welcome-text">
+                <h1>
+                    Welcome back,
+                    @(currentUser?.FullName ?? currentUser?.Username ?? "Admin")! 👋
+                </h1>
+                <p>Here's what's happening in your system today</p>
+            </div>
+            <div class="welcome-stat">
+                <span class="stat-badge">@dashboard.UploadedToday files uploaded</span>
+            </div>
+        </div>
     </div>
 
     <!-- Admin Navigation Tabs -->
-    <div class="admin-tabs">
-        <button class="tab-btn active" onclick="switchTab('overview')">📊 Overview</button>
-        <button class="tab-btn" onclick="switchTab('uploads')">📤 Today's Uploads</button>
-        <button class="tab-btn" onclick="switchTab('activity')">📋 Activity Log</button>
-        <button class="tab-btn" onclick="switchTab('analytics')">📈 Analytics</button>
+    <div class="admin-tabs-wrapper">
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="switchTab('overview')">
+                <span class="tab-icon">📊</span>
+                <span class="tab-label">Overview</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('uploads')">
+                <span class="tab-icon">📤</span>
+                <span class="tab-label">Today's Uploads</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('activity')">
+                <span class="tab-icon">📋</span>
+                <span class="tab-label">Activity Log</span>
+            </button>
+        </div>
     </div>
 
     <!-- TAB 1: OVERVIEW (Dashboard) -->
     <div class="tab-content active" id="overview">
-        <!-- Stats Cards -->
+
+        <!-- Premium Stats Cards with Animations -->
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon documents">
-                    📊
+            <div class="stat-card premium">
+                <div class="stat-card-header">
+                    <div class="stat-icon documents">📊</div>
+                    <span class="stat-trend">↑ 12%</span>
                 </div>
                 <div class="stat-content">
                     <p class="stat-label">Total Documents</p>
-                    <p class="stat-value">247</p>
+                    <p class="stat-value">@dashboard.TotalDocuments</p>
+                </div>
+                <div class="stat-footer">
+                    <span class="stat-period">All time</span>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-icon recent">
-                    ⏱️
+            <div class="stat-card premium">
+                <div class="stat-card-header">
+                    <div class="stat-icon recent">⏱️</div>
+                    <span class="stat-trend">↑ 8%</span>
                 </div>
                 <div class="stat-content">
                     <p class="stat-label">Recently Uploaded</p>
-                    <p class="stat-value">12</p>
+                    <p class="stat-value">@dashboard.RecentlyUploaded</p>
+                </div>
+                <div class="stat-footer">
+                    <span class="stat-period">Last 7 days</span>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-icon uploaded">
-                    ✅
+            <div class="stat-card premium">
+                <div class="stat-card-header">
+                    <div class="stat-icon uploaded">✅</div>
+                    <span class="stat-trend highlight">NEW</span>
                 </div>
                 <div class="stat-content">
                     <p class="stat-label">Uploaded Today</p>
-                    <p class="stat-value">5</p>
+                    <p class="stat-value">@dashboard.UploadedToday</p>
+                </div>
+                <div class="stat-footer">
+                    <span class="stat-period">Today</span>
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-icon users">
-                    👥
+            <div class="stat-card premium">
+                <div class="stat-card-header">
+                    <div class="stat-icon users">👥</div>
+                    <span class="stat-trend">↑ 5%</span>
                 </div>
                 <div class="stat-content">
                     <p class="stat-label">Active Users</p>
-                    <p class="stat-value">28</p>
+                    <p class="stat-value">@dashboard.ActiveUsers</p>
+                </div>
+                <div class="stat-footer">
+                    <span class="stat-period">Online now</span>
                 </div>
             </div>
         </div>
 
         <!-- Overview Bottom Row -->
         <div class="overview-bottom-row">
-            <!-- Recent Files Mini -->
-            <div class="mini-section">
-                <h3>Recently Uploaded Files</h3>
+
+            <!-- Recent Files Section -->
+            <div class="card-section recent-files-card">
+                <div class="section-header-card">
+                    <h3>📂 Recent Files</h3>
+                    <a href="#" class="view-all-link">View All →</a>
+                </div>
+
                 <div class="mini-files-list">
-                    <div class="mini-file-item">
-                        <span class="file-type-badge pdf">PDF</span>
-                        <div class="mini-file-info">
-                            <p class="mini-file-name">Personnel_Record_2024.pdf</p>
-                            <p class="mini-file-meta">2.4 MB • Today at 10:30 AM</p>
+                    @foreach (var file in dashboard.RecentFiles)
+                    {
+                        <div class="mini-file-item">
+                            <span class="file-type-badge">
+                                @file.FileExtension.Replace(".", "").ToUpper()
+                            </span>
+                            <div class="mini-file-info">
+                                <p class="mini-file-name">@file.OriginalFileName</p>
+                                <p class="mini-file-meta">
+                                    @(Math.Round(file.FileSize / 1024.0 / 1024.0, 2)) MB • @file.CreatedAt.ToLocalTime().ToString("MMM dd")
+                                </p>
+                            </div>
+                            <div class="file-actions">
+                                <button class="file-action-btn">⋮</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mini-file-item">
-                        <span class="file-type-badge excel">XLSX</span>
-                        <div class="mini-file-info">
-                            <p class="mini-file-name">Monthly_Report_April.xlsx</p>
-                            <p class="mini-file-meta">1.8 MB • May 02, 2026</p>
-                        </div>
-                    </div>
-                    <div class="mini-file-item">
-                        <span class="file-type-badge word">DOCX</span>
-                        <div class="mini-file-info">
-                            <p class="mini-file-name">Staff_Directory_2026.docx</p>
-                            <p class="mini-file-meta">890 KB • May 01, 2026</p>
-                        </div>
-                    </div>
+                    }
                 </div>
             </div>
+
+            
         </div>
     </div>
 
-    <!-- TAB 2: DOCUMENTS -->
-    <div class="tab-content" id="documents">
-        <div class="section-header">
-            <h2>All Documents in System</h2>
-            <div class="search-export">
-                <input type="text" class="search-input" placeholder="Search documents...">
-                <button class="export-btn">📥 Export List</button>
-            </div>
-        </div>
-
-        <div class="files-table-wrapper">
-            <table class="files-table">
-                <thead>
-                    <tr>
-                        <th>File Name</th>
-                        <th>Type</th>
-                        <th>Size</th>
-                        <th>Uploaded By</th>
-                        <th>Date Modified</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <div class="file-name-cell">
-                                <span class="file-icon">📄</span>
-                                <span>Personnel_Record_2024.pdf</span>
-                            </div>
-                        </td>
-                        <td>PDF</td>
-                        <td>2.4 MB</td>
-                        <td>John Doe</td>
-                        <td>May 03, 2026</td>
-                        <td>
-                            <span class="status-badge completed">Completed</span>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn-action view" title="View">👁️</button>
-                                <button class="btn-action download" title="Download">⬇️</button>
-                                <button class="btn-action delete" title="Delete">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="file-name-cell">
-                                <span class="file-icon">📊</span>
-                                <span>Monthly_Report_April.xlsx</span>
-                            </div>
-                        </td>
-                        <td>Excel</td>
-                        <td>1.8 MB</td>
-                        <td>Jane Smith</td>
-                        <td>May 02, 2026</td>
-                        <td>
-                            <span class="status-badge completed">Completed</span>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn-action view" title="View">👁️</button>
-                                <button class="btn-action download" title="Download">⬇️</button>
-                                <button class="btn-action delete" title="Delete">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="file-name-cell">
-                                <span class="file-icon">📝</span>
-                                <span>Staff_Directory_2026.docx</span>
-                            </div>
-                        </td>
-                        <td>Word</td>
-                        <td>890 KB</td>
-                        <td>Mike Johnson</td>
-                        <td>May 01, 2026</td>
-                        <td>
-                            <span class="status-badge pending">Pending</span>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn-action view" title="View">👁️</button>
-                                <button class="btn-action download" title="Download">⬇️</button>
-                                <button class="btn-action delete" title="Delete">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="file-name-cell">
-                                <span class="file-icon">📄</span>
-                                <span>Training_Materials.pdf</span>
-                            </div>
-                        </td>
-                        <td>PDF</td>
-                        <td>3.2 MB</td>
-                        <td>Sarah Williams</td>
-                        <td>Apr 30, 2026</td>
-                        <td>
-                            <span class="status-badge completed">Completed</span>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn-action view" title="View">👁️</button>
-                                <button class="btn-action download" title="Download">⬇️</button>
-                                <button class="btn-action delete" title="Delete">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="file-name-cell">
-                                <span class="file-icon">🎯</span>
-                                <span>Q2_Strategic_Plan.pptx</span>
-                            </div>
-                        </td>
-                        <td>PowerPoint</td>
-                        <td>4.1 MB</td>
-                        <td>Tom Anderson</td>
-                        <td>Apr 28, 2026</td>
-                        <td>
-                            <span class="status-badge archived">Archived</span>
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="btn-action view" title="View">👁️</button>
-                                <button class="btn-action download" title="Download">⬇️</button>
-                                <button class="btn-action delete" title="Delete">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- TAB 3: TODAY'S UPLOADS -->
+    <!-- TAB 2: TODAY'S UPLOADS -->
     <div class="tab-content" id="uploads">
-        <div class="section-header">
-            <h2>Files Uploaded Today</h2>
-            <span class="upload-count">5 files uploaded</span>
+        <div class="section-header-large">
+            <div class="section-title-wrapper">
+                <h2>📤 Files Uploaded Today</h2>
+                <span class="upload-count-badge">@dashboard.TodaysUploads.Count files</span>
+            </div>
+            <div class="section-actions">
+                <input type="text" class="search-input" placeholder="🔍 Search files..." />
+                <button class="btn-export">⬇️ Export</button>
+            </div>
         </div>
 
         <div class="today-uploads-grid">
-            <div class="upload-card">
-                <div class="upload-header">
-                    <span class="file-type-badge pdf">PDF</span>
-                    <p class="upload-time">10:30 AM</p>
-                </div>
-                <h4>Personnel_Record_2024.pdf</h4>
-                <p class="upload-user">Uploaded by: <strong>John Doe</strong></p>
-                <p class="upload-size">Size: 2.4 MB</p>
-                <p class="upload-status">Status: <span class="badge-mini completed">Completed</span></p>
-                <div class="upload-actions">
-                    <button class="btn-secondary">View</button>
-                    <button class="btn-secondary">Download</button>
-                </div>
-            </div>
+            @foreach (var file in dashboard.TodaysUploads)
+            {
+                <div class="upload-card premium-card">
+                    <div class="upload-card-top">
+                        <span class="file-type-badge large">
+                            @file.FileExtension.Replace(".", "").ToUpper()
+                        </span>
+                        <p class="upload-time">@($"{file.CreatedAt.ToLocalTime():hh:mm tt}")</p>
+                    </div>
 
-            <div class="upload-card">
-                <div class="upload-header">
-                    <span class="file-type-badge excel">XLSX</span>
-                    <p class="upload-time">09:15 AM</p>
-                </div>
-                <h4>Q1_Budget_Analysis.xlsx</h4>
-                <p class="upload-user">Uploaded by: <strong>Jane Smith</strong></p>
-                <p class="upload-size">Size: 1.5 MB</p>
-                <p class="upload-status">Status: <span class="badge-mini completed">Completed</span></p>
-                <div class="upload-actions">
-                    <button class="btn-secondary">View</button>
-                    <button class="btn-secondary">Download</button>
-                </div>
-            </div>
+                    <div class="upload-card-content">
+                        <h4 class="upload-filename">@file.OriginalFileName</h4>
 
-            <div class="upload-card">
-                <div class="upload-header">
-                    <span class="file-type-badge word">DOCX</span>
-                    <p class="upload-time">08:45 AM</p>
-                </div>
-                <h4>Meeting_Notes_May.docx</h4>
-                <p class="upload-user">Uploaded by: <strong>Mike Johnson</strong></p>
-                <p class="upload-size">Size: 456 KB</p>
-                <p class="upload-status">Status: <span class="badge-mini pending">Pending Review</span></p>
-                <div class="upload-actions">
-                    <button class="btn-secondary">View</button>
-                    <button class="btn-secondary">Download</button>
-                </div>
-            </div>
+                        <div class="upload-detail">
+                            <span class="detail-label">By:</span>
+                            <span class="detail-value">@file.UploadedBy</span>
+                        </div>
 
-            <div class="upload-card">
-                <div class="upload-header">
-                    <span class="file-type-badge pdf">PDF</span>
-                    <p class="upload-time">07:30 AM</p>
-                </div>
-                <h4>Compliance_Report_2026.pdf</h4>
-                <p class="upload-user">Uploaded by: <strong>Sarah Williams</strong></p>
-                <p class="upload-size">Size: 3.7 MB</p>
-                <p class="upload-status">Status: <span class="badge-mini completed">Completed</span></p>
-                <div class="upload-actions">
-                    <button class="btn-secondary">View</button>
-                    <button class="btn-secondary">Download</button>
-                </div>
-            </div>
+                        <div class="upload-detail">
+                            <span class="detail-label">Size:</span>
+                            <span class="detail-value">@(Math.Round(file.FileSize / 1024.0 / 1024.0, 2)) MB</span>
+                        </div>
+                    </div>
 
-            <div class="upload-card">
-                <div class="upload-header">
-                    <span class="file-type-badge excel">CSV</span>
-                    <p class="upload-time">06:20 AM</p>
+                    <div class="upload-card-footer">
+                        <span class="badge-status completed">✓ Completed</span>
+                        <div class="upload-card-actions">
+                            <button class="card-action-btn" title="Preview">👁️</button>
+                            <button class="card-action-btn" title="Download">⬇️</button>
+                            <button class="card-action-btn" title="More">⋮</button>
+                        </div>
+                    </div>
                 </div>
-                <h4>User_Access_Log.csv</h4>
-                <p class="upload-user">Uploaded by: <strong>Tom Anderson</strong></p>
-                <p class="upload-size">Size: 2.1 MB</p>
-                <p class="upload-status">Status: <span class="badge-mini completed">Completed</span></p>
-                <div class="upload-actions">
-                    <button class="btn-secondary">View</button>
-                    <button class="btn-secondary">Download</button>
-                </div>
-            </div>
+            }
         </div>
     </div>
 
-    <!-- TAB 4: USERS MANAGEMENT -->
-    <div class="tab-content" id="users">
-        <div class="section-header">
-            <h2>User Management</h2>
-            <button class="add-user-btn">➕ Add New User</button>
-        </div>
-
-        <div class="users-table-wrapper">
-            <table class="users-table">
-                <thead>
-                    <tr>
-                        <th>User ID</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Department</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Last Login</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>#USR001</td>
-                        <td>
-                            <div class="user-cell">
-                                <div class="user-avatar">JD</div>
-                                <span>John Doe</span>
-                            </div>
-                        </td>
-                        <td>john.doe@company.com</td>
-                        <td>Finance</td>
-                        <td><span class="role-badge admin">Admin</span></td>
-                        <td><span class="status-indicator active"></span> Active</td>
-                        <td>May 09, 2026 - 2:30 PM</td>
-                        <td>
-                            <div class="user-actions">
-                                <button class="btn-icon" title="Edit">✏️</button>
-                                <button class="btn-icon" title="View Details">👁️</button>
-                                <button class="btn-icon" title="Deactivate">⛔</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>#USR002</td>
-                        <td>
-                            <div class="user-cell">
-                                <div class="user-avatar">JS</div>
-                                <span>Jane Smith</span>
-                            </div>
-                        </td>
-                        <td>jane.smith@company.com</td>
-                        <td>HR</td>
-                        <td><span class="role-badge user">User</span></td>
-                        <td><span class="status-indicator active"></span> Active</td>
-                        <td>May 08, 2026 - 4:15 PM</td>
-                        <td>
-                            <div class="user-actions">
-                                <button class="btn-icon" title="Edit">✏️</button>
-                                <button class="btn-icon" title="View Details">👁️</button>
-                                <button class="btn-icon" title="Deactivate">⛔</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>#USR003</td>
-                        <td>
-                            <div class="user-cell">
-                                <div class="user-avatar">MJ</div>
-                                <span>Mike Johnson</span>
-                            </div>
-                        </td>
-                        <td>mike.johnson@company.com</td>
-                        <td>Operations</td>
-                        <td><span class="role-badge user">User</span></td>
-                        <td><span class="status-indicator active"></span> Active</td>
-                        <td>May 09, 2026 - 10:45 AM</td>
-                        <td>
-                            <div class="user-actions">
-                                <button class="btn-icon" title="Edit">✏️</button>
-                                <button class="btn-icon" title="View Details">👁️</button>
-                                <button class="btn-icon" title="Deactivate">⛔</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>#USR004</td>
-                        <td>
-                            <div class="user-cell">
-                                <div class="user-avatar">SW</div>
-                                <span>Sarah Williams</span>
-                            </div>
-                        </td>
-                        <td>sarah.williams@company.com</td>
-                        <td>Marketing</td>
-                        <td><span class="role-badge user">User</span></td>
-                        <td><span class="status-indicator inactive"></span> Inactive</td>
-                        <td>May 05, 2026 - 3:20 PM</td>
-                        <td>
-                            <div class="user-actions">
-                                <button class="btn-icon" title="Edit">✏️</button>
-                                <button class="btn-icon" title="View Details">👁️</button>
-                                <button class="btn-icon" title="Activate">✅</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>#USR005</td>
-                        <td>
-                            <div class="user-cell">
-                                <div class="user-avatar">TA</div>
-                                <span>Tom Anderson</span>
-                            </div>
-                        </td>
-                        <td>tom.anderson@company.com</td>
-                        <td>IT</td>
-                        <td><span class="role-badge moderator">Moderator</span></td>
-                        <td><span class="status-indicator active"></span> Active</td>
-                        <td>May 09, 2026 - 1:10 PM</td>
-                        <td>
-                            <div class="user-actions">
-                                <button class="btn-icon" title="Edit">✏️</button>
-                                <button class="btn-icon" title="View Details">👁️</button>
-                                <button class="btn-icon" title="Deactivate">⛔</button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- TAB 5: ACTIVITY LOG -->
+    <!-- TAB 3: ACTIVITY LOG -->
     <div class="tab-content" id="activity">
-
-        <div class="section-header">
-            <h2>Activity Log & User Actions</h2>
+        <div class="section-header-large">
+            <h2>📋 Activity Log & User Actions</h2>
+            <div class="filter-controls">
+                <select class="filter-select">
+                    <option>All Activities</option>
+                    <option>Upload</option>
+                    <option>Download</option>
+                    <option>Delete</option>
+                    <option>Login</option>
+                </select>
+            </div>
         </div>
 
-        <div class="activity-timeline">
-
+        <div class="activity-timeline-container">
             @if (activityLogs.Count == 0)
             {
                 <div class="empty-state">
-                    <p>No activity logs found.</p>
+                    <div class="empty-icon">📭</div>
+                    <p class="empty-title">No activity yet</p>
+                    <p class="empty-text">When users perform actions, they will appear here</p>
                 </div>
             }
             else
             {
-                @foreach (var log in activityLogs)
-                {
-                    <div class="timeline-item">
-
-                        <div class="timeline-marker @GetTimelineClass(log.Action)">
-                        </div>
-
-                        <div class="timeline-content">
-
-                            <div class="activity-header">
-
-                                <span class="activity-icon">
-                                    @GetActivityIcon(log.Action)
-                                </span>
-
-                                <h4>@log.Action</h4>
-
-                                <span class="timeline-time">
-                                    @log.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt")
-                                </span>
-
+                <div class="activity-timeline">
+                    @foreach (var log in activityLogs)
+                    {
+                        <div class="timeline-item">
+                            <div class="timeline-marker @GetTimelineClass(log.Action)">
+                                <span class="marker-icon">@GetActivityIcon(log.Action)</span>
                             </div>
 
-                            <p class="activity-detail">
-
-                                <strong>@log.User</strong>
-
-                                @if (!string.IsNullOrWhiteSpace(log.EntityName))
-                                {
-                                    <span>
-                                        performed action on
-                                        <strong>@log.EntityName</strong>
+                            <div class="timeline-content">
+                                <div class="activity-header">
+                                    <h4>@log.Action</h4>
+                                    <span class="activity-timestamp">
+                                        @log.CreatedAt.ToLocalTime().ToString("MMM dd, hh:mm tt")
                                     </span>
+                                </div>
+
+                                <p class="activity-user">
+                                    <strong>@log.User</strong>
+                                    @if (!string.IsNullOrWhiteSpace(log.EntityName))
+                                    {
+                                        <span>on <strong>@log.EntityName</strong></span>
+                                    }
+                                </p>
+
+                                @if (!string.IsNullOrWhiteSpace(log.Description))
+                                {
+                                    <p class="activity-description">@log.Description</p>
                                 }
-
-                            </p>
-
-                            <p class="activity-description">
-                                @log.Description
-                            </p>
-
-
+                            </div>
                         </div>
-
-                    </div>
-                }
+                    }
+                </div>
             }
-
-        </div>
-
-    </div>
-
-    <!-- TAB 6: ANALYTICS -->
-    <div class="tab-content" id="analytics">
-        <div class="section-header">
-            <h2>System Analytics & Reports</h2>
-        </div>
-
-        <div class="analytics-grid">
-            <div class="analytics-card">
-                <h3>📊 File Upload Trends</h3>
-                <div class="chart-placeholder">
-                    <p>Weekly Upload Chart</p>
-                    <div class="bar-chart">
-                        <div class="bar-item">
-                            <div class="bar" style="height: 65%;"></div>
-                            <span>Mon</span>
-                        </div>
-                        <div class="bar-item">
-                            <div class="bar" style="height: 85%;"></div>
-                            <span>Tue</span>
-                        </div>
-                        <div class="bar-item">
-                            <div class="bar" style="height: 75%;"></div>
-                            <span>Wed</span>
-                        </div>
-                        <div class="bar-item">
-                            <div class="bar" style="height: 90%;"></div>
-                            <span>Thu</span>
-                        </div>
-                        <div class="bar-item">
-                            <div class="bar" style="height: 55%;"></div>
-                            <span>Fri</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="analytics-card">
-                <h3>📁 File Type Distribution</h3>
-                <div class="chart-placeholder">
-                    <div class="type-distribution">
-                        <div class="type-item">
-                            <span class="type-circle pdf"></span>
-                            <p>PDF - 45%</p>
-                        </div>
-                        <div class="type-item">
-                            <span class="type-circle excel"></span>
-                            <p>Excel - 25%</p>
-                        </div>
-                        <div class="type-item">
-                            <span class="type-circle word"></span>
-                            <p>Word - 20%</p>
-                        </div>
-                        <div class="type-item">
-                            <span class="type-circle other"></span>
-                            <p>Other - 10%</p>
-                        </div>
-                    </div>
-                </div>
-            </div>        
         </div>
     </div>
+
 </div>
 
 <script>
@@ -598,11 +267,16 @@
         document.getElementById(tabName).classList.add('active');
 
         // Add active class to clicked button
-        event.target.classList.add('active');
+        event.target.closest('.tab-btn').classList.add('active');
     }
 </script>
-@code{
+
+@code {
     private PeriodicTimer? timer;
+
+    private DashboardData dashboard = new();
+
+    private UserSession? currentUser;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -669,13 +343,37 @@
     {
         try
         {
-            var result =
+            // =====================================
+            // GET CURRENT USER
+            // =====================================
+
+            currentUser =
+                await CurrentUserService.GetUser();
+
+            // =====================================
+            // LOAD ACTIVITY LOGS
+            // =====================================
+
+            var logs =
                 await Http.GetFromJsonAsync<List<ActivityLogModel>>(
                     "api/ActivityLogs");
 
-            if (result != null)
+            if (logs != null)
             {
-                activityLogs = result;
+                activityLogs = logs;
+            }
+
+            // =====================================
+            // LOAD DASHBOARD DATA
+            // =====================================
+
+            var dashboardResult =
+                await Http.GetFromJsonAsync<DashboardData>(
+                    "api/Dashboard");
+
+            if (dashboardResult != null)
+            {
+                dashboard = dashboardResult;
             }
         }
         catch (Exception ex)
@@ -734,5 +432,41 @@
             return "info";
 
         return "success";
+    }
+
+
+    // =========================================
+    // DASHBOARD DATA
+    // =========================================
+
+  
+    public class DashboardData
+    {
+        public int TotalDocuments { get; set; }
+
+        public int RecentlyUploaded { get; set; }
+
+        public int UploadedToday { get; set; }
+
+        public int ActiveUsers { get; set; }
+
+        public List<DocumentItem> RecentFiles { get; set; } = new();
+
+        public List<DocumentItem> TodaysUploads { get; set; } = new();
+    }
+
+    public class DocumentItem
+    {
+        public Guid Id { get; set; }
+
+        public string OriginalFileName { get; set; } = "";
+
+        public string FileExtension { get; set; } = "";
+
+        public long FileSize { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+
+        public string UploadedBy { get; set; } = "";
     }
 }
