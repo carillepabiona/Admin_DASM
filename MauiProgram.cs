@@ -27,6 +27,7 @@ namespace Admin_DASM
                 new HttpClient
                 {
                     BaseAddress =
+                        //new Uri("http://192.168.254.102:5043/")
                         new Uri("https://localhost:7209/")
                 });
 
