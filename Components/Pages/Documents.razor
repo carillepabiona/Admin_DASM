@@ -666,14 +666,20 @@
     // DOCUMENT ACTIONS
     // =========================================
 
-    private void SelectDocument(DocumentItem doc)
+    private async Task SelectDocument(DocumentItem doc)
     {
+        await ViewDocument(doc);
     }
 
     private async Task ViewDocument(DocumentItem doc)
     {
+        var apiBase =
+            Http.BaseAddress?.ToString() ?? "";
+
         var url =
-            $"api/documents/view/{doc.Id}?userId={currentUserId}";
+            $"{apiBase}api/documents/view/{doc.Id}?userId={currentUserId}";
+
+        Console.WriteLine(url);
 
         await JS.InvokeVoidAsync(
             "open",
@@ -681,18 +687,68 @@
             "_blank");
     }
 
-    private void EditDocument(DocumentItem doc)
+    private async Task EditDocument(DocumentItem doc)
     {
+        var newName =
+            await JS.InvokeAsync<string>(
+                "prompt",
+                "Enter new filename:",
+                doc.Name);
+
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return;
+        }
+
+        var request =
+            new RenameDocumentRequest
+            {
+                NewFileName = newName
+            };
+
+        var response =
+            await Http.PutAsJsonAsync(
+                $"api/documents/rename/{doc.Id}?userId={currentUserId}",
+                request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadDocuments();
+        }
+        else
+        {
+            var error =
+                await response.Content.ReadAsStringAsync();
+
+            await JS.InvokeVoidAsync(
+                "alert",
+                error);
+        }
     }
 
-    private void ShareDocument(DocumentItem doc)
+    private async Task ShareDocument(DocumentItem doc)
     {
+        var shareUrl =
+            $"{Navigation.BaseUri}api/documents/view/{doc.Id}?userId={currentUserId}";
+
+        await JS.InvokeVoidAsync(
+            "navigator.clipboard.writeText",
+            shareUrl);
+
+        await JS.InvokeVoidAsync(
+            "alert",
+            "Share link copied.");
     }
 
     private async Task DownloadDocument(DocumentItem doc)
     {
+        var apiBase =
+            Http.BaseAddress?.ToString() ?? "";
+
         var url =
-            $"api/documents/download/{doc.Id}?userId={currentUserId}";
+            $"{apiBase}api/documents/download/{doc.Id}?userId={currentUserId}";
+
+        Console.WriteLine(url);
 
         await JS.InvokeVoidAsync(
             "open",
@@ -702,10 +758,33 @@
 
     private async Task DeleteDocument(DocumentItem doc)
     {
-        await Http.DeleteAsync(
-            $"api/documents/{doc.Id}?userId={currentUserId}");
+        var confirm =
+            await JS.InvokeAsync<bool>(
+                "confirm",
+                $"Delete {doc.Name}?");
 
-        await LoadDocuments();
+        if (!confirm)
+        {
+            return;
+        }
+
+        var response =
+            await Http.DeleteAsync(
+                $"api/documents/{doc.Id}?userId={currentUserId}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadDocuments();
+        }
+        else
+        {
+            var error =
+                await response.Content.ReadAsStringAsync();
+
+            await JS.InvokeVoidAsync(
+                "alert",
+                error);
+        }
     }
 
     // =========================================
@@ -924,5 +1003,10 @@
         public Guid Id { get; set; }
 
         public string Name { get; set; }
+    }
+
+    public class RenameDocumentRequest
+    {
+        public string NewFileName { get; set; } = "";
     }
 }
