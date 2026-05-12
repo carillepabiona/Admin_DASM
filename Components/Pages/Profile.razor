@@ -395,8 +395,8 @@
                     Role = currentUser.RoleId switch
                     {
                         1 => "Administrator",
-                        2 => "Military Personnel",
-                        3 => "Civilian Personnel",
+                        3 => "Military Personnel",
+                        2 => "Civilian Personnel",
                         _ => "Unknown Role"
                     },
 
@@ -464,7 +464,7 @@
             };
 
             var response = await Http.PutAsJsonAsync(
-                $"http://10.123.35.251:5043/api/users/update-profile/{currentUser.Id}",
+                $"api/users/update-profile/{currentUser.Id}",
                 updateRequest);
 
             if (!response.IsSuccessStatusCode)
@@ -565,7 +565,7 @@
             // API CALL
             var response =
                 await Http.PutAsJsonAsync(
-                    $"http://10.123.35.251:5043/api/users/change-password/{currentUser.Id}",
+                    $"api/users/change-password/{currentUser.Id}",
                     request);
 
             if (response.IsSuccessStatusCode)

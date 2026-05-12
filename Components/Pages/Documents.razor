@@ -2,9 +2,11 @@
 
 @using System.Net.Http.Json
 @using System.Linq
+@using Microsoft.JSInterop
 
 @inject NavigationManager Navigation
 @inject HttpClient Http
+@inject IJSRuntime JS
 
 <head>
     <link rel="stylesheet" href="css/documents.css" />
@@ -104,23 +106,6 @@
         }
 
     </div>
-
-    <!-- Category Pills -->
-    <div class="category-pills">
-
-        @foreach (var category in categories)
-        {
-            <button class="category-pill @(selectedCategory == category ? "active" : "")"
-                    @onclick="@(() => SelectCategory(category))">
-
-                @GetCategoryIcon(category)
-                @category
-
-            </button>
-        }
-
-    </div>
-
     <!-- FOLDERS -->
     @if (folders.Any())
     {
@@ -164,19 +149,6 @@
 
                     </div>
 
-                    <div class="folder-actions">
-
-                        <button class="action-icon"
-                                title="Delete"
-                                @onclick:stopPropagation="true"
-                                @onclick="@(() => DeleteFolder(folder.Id))">
-
-                            🗑️
-
-                        </button>
-
-                    </div>
-
                 </div>
             }
 
@@ -212,45 +184,60 @@
 
                             <div class="action-buttons">
 
-                                <button class="action-btn view-btn"
-                                        title="View"
-                                        @onclick="@(() => ViewDocument(doc))">
+                                @if (access.CanView)
+                                {
+                                    <button class="action-btn view-btn"
+                                            title="View"
+                                            @onclick="async () => await ViewDocument(doc)">
 
-                                    👁️
+                                        👁️
 
-                                </button>
+                                    </button>
+                                }
 
-                                <button class="action-btn edit-btn"
-                                        title="Edit"
-                                        @onclick="@(() => EditDocument(doc))">
+                                @if (access.CanEdit)
+                                {
+                                    <button class="action-btn edit-btn"
+                                            title="Edit"
+                                            @onclick="@(() => EditDocument(doc))">
 
-                                    ✏️
+                                        ✏️
 
-                                </button>
+                                    </button>
+                                }
 
-                                <button class="action-btn share-btn"
-                                        title="Share"
-                                        @onclick="@(() => ShareDocument(doc))">
+                                @if (access.CanShare)
+                                {
+                                    <button class="action-btn share-btn"
+                                            title="Share"
+                                            @onclick="@(() => ShareDocument(doc))">
 
-                                    📤
+                                        📤
 
-                                </button>
+                                    </button>
+                                }
 
-                                <button class="action-btn download-btn"
-                                        title="Download"
-                                        @onclick="@(() => DownloadDocument(doc))">
+                                @if (access.CanDownload)
+                                {
+                                    <button class="action-btn download-btn"
+                                            title="Download"
+                                            @onclick="async () => await DownloadDocument(doc)">
 
-                                    ⬇️
+                                        ⬇️
 
-                                </button>
+                                    </button>
+                                }
 
-                                <button class="action-btn delete-btn"
-                                        title="Delete"
-                                        @onclick="@(() => DeleteDocument(doc))">
+                                @if (access.CanDelete)
+                                {
+                                    <button class="action-btn delete-btn"
+                                            title="Delete"
+                                            @onclick="async () => await DeleteDocument(doc)">
 
-                                    🗑️
+                                        🗑️
 
-                                </button>
+                                    </button>
+                                }
 
                             </div>
 
@@ -298,41 +285,43 @@
 
                         </p>
 
-                        <!-- FILE PATH -->
-                        <p class="document-path">
-
-                            📁 @doc.FilePath
-
-                        </p>
-
                     </div>
 
                     <!-- MOBILE ACTIONS -->
                     <div class="quick-actions-mobile">
 
-                        <button class="quick-action-btn"
-                                @onclick:stopPropagation="true"
-                                @onclick="@(() => ViewDocument(doc))">
+                        @if (access.CanView)
+                        {
+                            <button class="quick-action-btn"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="async () => await ViewDocument(doc)">
 
-                            View
+                                View
 
-                        </button>
+                            </button>
+                        }
 
-                        <button class="quick-action-btn"
-                                @onclick:stopPropagation="true"
-                                @onclick="@(() => DownloadDocument(doc))">
+                        @if (access.CanDownload)
+                        {
+                            <button class="quick-action-btn"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="async () => await DownloadDocument(doc)">
 
-                            Download
+                                Download
 
-                        </button>
+                            </button>
+                        }
 
-                        <button class="quick-action-btn"
-                                @onclick:stopPropagation="true"
-                                @onclick="@(() => DeleteDocument(doc))">
+                        @if (access.CanDelete)
+                        {
+                            <button class="quick-action-btn"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="async () => await DeleteDocument(doc)">
 
-                            Delete
+                                Delete
 
-                        </button>
+                            </button>
+                        }
 
                     </div>
 
@@ -341,62 +330,28 @@
 
         </div>
     }
-    else if (!string.IsNullOrEmpty(searchQuery)
-    || !string.IsNullOrEmpty(selectedCategory)
-    || currentFolderId != null)
-    {
-        <div class="empty-state">
-
-            <div class="empty-icon">
-                🔍
-            </div>
-
-            <h2>
-                No Documents Found
-            </h2>
-
-            <p>
-                Try adjusting your search filters or upload a new document.
-            </p>
-
-            <button class="btn btn-primary"
-                    @onclick="ClearFilters">
-
-                Clear Filters
-
-            </button>
-
-        </div>
-    }
-    else
-    {
-        <div class="empty-state">
-
-            <div class="empty-icon">
-                📭
-            </div>
-
-            <h2>
-                No Documents Yet
-            </h2>
-
-            <p>
-                Start by uploading your first document or creating a folder.
-            </p>
-
-            <button class="btn btn-primary"
-                    @onclick="ShowUploadModal">
-
-                Upload Document
-
-            </button>
-
-        </div>
-    }
 
 </div>
 
 @code {
+
+    // =========================================
+    // CURRENT USER
+    // =========================================
+
+    // REPLACE THIS WITH REAL LOGGED-IN USER ID
+    private Guid currentUserId =
+        Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+    // =========================================
+    // ACCESS LEVEL
+    // =========================================
+
+    private AccessLevelResponse access = new();
+
+    // =========================================
+    // VARIABLES
+    // =========================================
 
     private string searchQuery = "";
 
@@ -416,13 +371,38 @@
 
     private List<string> categories = new();
 
+    // =========================================
+    // INITIALIZE
+    // =========================================
+
     protected override async Task OnInitializedAsync()
     {
+        await LoadAccess();
+
         await LoadCategories();
 
         await LoadFolders();
 
         await LoadDocuments();
+    }
+
+    // =========================================
+    // LOAD ACCESS
+    // =========================================
+
+    private async Task LoadAccess()
+    {
+        try
+        {
+            access =
+                await Http.GetFromJsonAsync<AccessLevelResponse>(
+                    $"api/users/access/{currentUserId}")
+                ?? new AccessLevelResponse();
+        }
+        catch
+        {
+            access = new AccessLevelResponse();
+        }
     }
 
     // =========================================
@@ -435,7 +415,7 @@
         {
             var response =
                 await Http.GetFromJsonAsync<List<DocumentResponse>>(
-                    "http://192.168.11.10:5043/api/documents");
+                    "api/documents");
 
             if (response != null)
             {
@@ -483,7 +463,7 @@
         {
             var response =
                 await Http.GetFromJsonAsync<List<FolderResponse>>(
-                    "http://192.168.11.10:5043/api/folders");
+                    "api/folders");
 
             if (response != null)
             {
@@ -516,7 +496,7 @@
         {
             var response =
                 await Http.GetFromJsonAsync<List<CategoryResponse>>(
-                    "http://192.168.11.10:5043/api/categories");
+                    "api/categories");
 
             if (response != null)
             {
@@ -563,51 +543,28 @@
     {
         IEnumerable<DocumentItem> result = documents;
 
-        // =====================================
-        // FILTER BY FOLDER
-        // =====================================
-
         if (currentFolderId != null)
         {
-            result =
-                result.Where(x =>
-                    x.FolderId == currentFolderId);
+            result = result.Where(x =>
+                x.FolderId == currentFolderId);
         }
-        else
-        {
-            // ROOT DOCUMENTS ONLY
-            result =
-                result.Where(x =>
-                    x.FolderId == null);
-        }
-
-        // =====================================
-        // SEARCH
-        // =====================================
-
-        if (!string.IsNullOrWhiteSpace(searchQuery))
-        {
-            result =
-                result.Where(x =>
-                    x.Name.Contains(
-                        searchQuery,
-                        StringComparison.OrdinalIgnoreCase));
-        }
-
-        // =====================================
-        // CATEGORY
-        // =====================================
 
         if (!string.IsNullOrWhiteSpace(selectedCategory))
         {
-            result =
-                result.Where(x =>
-                    x.Category == selectedCategory);
+            result = result.Where(x =>
+                !string.IsNullOrWhiteSpace(x.Category) &&
+                x.Category.Equals(
+                    selectedCategory,
+                    StringComparison.OrdinalIgnoreCase));
         }
 
-        // =====================================
-        // SORTING
-        // =====================================
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            result = result.Where(x =>
+                x.Name.Contains(
+                    searchQuery,
+                    StringComparison.OrdinalIgnoreCase));
+        }
 
         result = sortBy switch
         {
@@ -624,8 +581,9 @@
                 result.OrderByDescending(x => x.UploadDate)
         };
 
-        filteredDocuments =
-            result.ToList();
+        filteredDocuments = result.ToList();
+
+        StateHasChanged();
     }
 
     // =========================================
@@ -642,7 +600,7 @@
     }
 
     // =========================================
-    // GO BACK TO ROOT
+    // GO HOME
     // =========================================
 
     private void GoHome()
@@ -691,8 +649,15 @@
     {
     }
 
-    private void ViewDocument(DocumentItem doc)
+    private async Task ViewDocument(DocumentItem doc)
     {
+        var url =
+            $"api/documents/view/{doc.Id}?userId={currentUserId}";
+
+        await JS.InvokeVoidAsync(
+            "open",
+            url,
+            "_blank");
     }
 
     private void EditDocument(DocumentItem doc)
@@ -703,14 +668,21 @@
     {
     }
 
-    private void DownloadDocument(DocumentItem doc)
+    private async Task DownloadDocument(DocumentItem doc)
     {
+        var url =
+            $"api/documents/download/{doc.Id}?userId={currentUserId}";
+
+        await JS.InvokeVoidAsync(
+            "open",
+            url,
+            "_blank");
     }
 
     private async Task DeleteDocument(DocumentItem doc)
     {
         await Http.DeleteAsync(
-            $"http://192.168.11.10:5043/api/documents/{doc.Id}");
+            $"api/documents/{doc.Id}?userId={currentUserId}");
 
         await LoadDocuments();
     }
@@ -722,7 +694,7 @@
     private async Task DeleteFolder(Guid id)
     {
         await Http.DeleteAsync(
-            $"http://192.168.11.10:5043/api/folders/{id}");
+            $"api/folders/{id}");
 
         await LoadFolders();
 
@@ -877,6 +849,19 @@
         public int DocumentCount { get; set; }
 
         public DateTime LastModified { get; set; }
+    }
+
+    public class AccessLevelResponse
+    {
+        public bool CanView { get; set; }
+
+        public bool CanEdit { get; set; }
+
+        public bool CanShare { get; set; }
+
+        public bool CanDownload { get; set; }
+
+        public bool CanDelete { get; set; }
     }
 
     // =========================================

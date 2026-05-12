@@ -307,7 +307,7 @@
 
             // YOUR API URL
             var apiUsers = await Http.GetFromJsonAsync<List<ApiUserResponse>>(
-                "http://192.168.11.10:5043/api/users");
+                "api/users");
 
             if (apiUsers != null)
             {

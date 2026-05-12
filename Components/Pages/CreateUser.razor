@@ -266,7 +266,7 @@
         try
         {
             var response = await Http.GetAsync(
-                "https://localhost:7209/api/roles");
+                "http://192.168.254.102:5043/api/roles");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -303,7 +303,7 @@
         try
         {
             var response = await Http.GetAsync(
-                "https://localhost:7209/api/accesslevels");
+                "http://192.168.254.102:5043/api/accesslevels");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -365,7 +365,7 @@
             isLoading = true;
 
             var response = await Http.PostAsJsonAsync(
-                "https://localhost:7209/api/users",
+                "http://192.168.254.102:5043/api/users",
                 userModel);
 
             if (response.IsSuccessStatusCode)
