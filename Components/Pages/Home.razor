@@ -154,8 +154,16 @@
                     await CurrentUserService
                         .SaveUser(user);
 
+                  
+#if WINDOWS
+AppWindowHolder.Instance.RestoreFullWindow();
+#endif
+
                     // REDIRECT
+                    await Task.Delay(100);
+
                     Nav.NavigateTo("/dashboard");
+
                 }
             }
 
