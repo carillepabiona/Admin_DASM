@@ -1,12 +1,9 @@
 ﻿@page "/profile"
-
 @using Admin_DASM.Models
 @using System.Text.RegularExpressions
-@using Microsoft.JSInterop
-@using System.Text.Json
 @using System.Net.Http.Json
-
-@inject IJSRuntime JS
+@using Admin_DASM.Services
+@inject CurrentUserService CurrentUserService
 @inject HttpClient Http
 
 <head>
@@ -352,11 +349,11 @@
 
 @code {
 
+    // =========================================
+    // UI
+    // =========================================
+
     private string activeTab = "account";
-
-    private ChangePasswordModel passwordModel = new();
-
-    private UserProfileModel userProfile = new();
 
     private string avatarInitial = "?";
 
@@ -370,51 +367,77 @@
 
     private string profileErrorMessage = "";
 
+    // =========================================
+    // MODELS
+    // =========================================
+
+    private ChangePasswordModel passwordModel = new();
+
+    private UserProfileModel userProfile = new();
+
+    // =========================================
+    // INITIALIZE
+    // =========================================
+
     protected override async Task OnInitializedAsync()
     {
-        var userJson = await JS.InvokeAsync<string>(
-            "localStorage.getItem",
-            "currentUser");
+        var currentUser =
+            await CurrentUserService.GetUser();
 
-        if (!string.IsNullOrEmpty(userJson))
+        if (currentUser == null)
         {
-            var currentUser =
-                JsonSerializer.Deserialize<UserSession>(userJson);
-
-            if (currentUser != null)
-            {
-                userProfile = new UserProfileModel
-                {
-                    Id = currentUser.Id,
-                    FullName = currentUser.FullName,
-                    Username = currentUser.Username,
-                    Email = currentUser.Email,
-                    ContactNumber = currentUser.ContactNumber,
-                    Address = currentUser.Address,
-
-                    Role = currentUser.RoleId switch
-                    {
-                        1 => "Administrator",
-                        3 => "Military Personnel",
-                        2 => "Civilian Personnel",
-                        _ => "Unknown Role"
-                    },
-
-                    CreatedDate = currentUser.CreatedAt
-                };
-
-                avatarInitial =
-                    !string.IsNullOrWhiteSpace(currentUser.FullName)
-                    ? currentUser.FullName.Substring(0, 1).ToUpper()
-                    : "?";
-            }
+            return;
         }
+
+        userProfile = new UserProfileModel
+        {
+            Id = currentUser.Id,
+
+            FullName = currentUser.FullName,
+
+            Username = currentUser.Username,
+
+            Email = currentUser.Email,
+
+            ContactNumber = currentUser.ContactNumber,
+
+            Address = currentUser.Address,
+
+            Role = currentUser.RoleId switch
+            {
+                1 => "Administrator",
+
+                2 => "Civilian Personnel",
+
+                3 => "Military Personnel",
+
+                _ => "Unknown Role"
+            },
+
+            CreatedDate = currentUser.CreatedAt
+        };
+
+        avatarInitial =
+            !string.IsNullOrWhiteSpace(
+                currentUser.FullName)
+            ? currentUser.FullName
+                .Substring(0, 1)
+                .ToUpper()
+            : "?";
     }
+
+    // =========================================
+    // TABS
+    // =========================================
 
     private void SetTab(string tab)
     {
         activeTab = tab;
     }
+
+    // =========================================
+    // PROFILE EDIT
+    // =========================================
 
     private void EnableEditProfile()
     {
@@ -434,46 +457,60 @@
         profileErrorMessage = "";
     }
 
+    // =========================================
+    // SAVE PROFILE
+    // =========================================
+
     private async Task SaveProfile()
     {
         try
         {
-            var userJson = await JS.InvokeAsync<string>(
-                "localStorage.getItem",
-                "currentUser");
-
-            if (string.IsNullOrEmpty(userJson))
-            {
-                profileErrorMessage = "User session not found.";
-                return;
-            }
-
             var currentUser =
-                JsonSerializer.Deserialize<UserSession>(userJson);
+                await CurrentUserService.GetUser();
 
             if (currentUser == null)
             {
-                profileErrorMessage = "Invalid user session.";
+                profileErrorMessage =
+                    "User session not found.";
+
                 return;
             }
 
-            var updateRequest = new UpdateProfileRequest
-            {
-                ContactNumber = userProfile.ContactNumber,
-                Address = userProfile.Address
-            };
+            // =====================================
+            // REQUEST
+            // =====================================
 
-            var response = await Http.PutAsJsonAsync(
-                $"api/users/update-profile/{currentUser.Id}",
-                updateRequest);
+            var updateRequest =
+                new UpdateProfileRequest
+                {
+                    ContactNumber =
+                        userProfile.ContactNumber,
+
+                    Address =
+                        userProfile.Address
+                };
+
+            // =====================================
+            // API CALL
+            // =====================================
+
+            var response =
+                await Http.PutAsJsonAsync(
+                    $"api/users/update-profile/{currentUser.Id}",
+                    updateRequest);
 
             if (!response.IsSuccessStatusCode)
             {
                 profileErrorMessage =
-                    await response.Content.ReadAsStringAsync();
+                    await response.Content
+                        .ReadAsStringAsync();
 
                 return;
             }
+
+            // =====================================
+            // UPDATE SESSION
+            // =====================================
 
             currentUser.ContactNumber =
                 userProfile.ContactNumber;
@@ -481,10 +518,12 @@
             currentUser.Address =
                 userProfile.Address;
 
-            await JS.InvokeVoidAsync(
-                "localStorage.setItem",
-                "currentUser",
-                JsonSerializer.Serialize(currentUser));
+            await CurrentUserService
+                .SaveUser(currentUser);
+
+            // =====================================
+            // SUCCESS
+            // =====================================
 
             profileSuccessMessage =
                 "Profile updated successfully.";
@@ -499,13 +538,20 @@
         }
     }
 
+    // =========================================
+    // CHANGE PASSWORD
+    // =========================================
+
     private async Task HandleChangePassword()
     {
         successMessage = "";
 
         errorMessage = "";
 
+        // =====================================
         // CHECK MATCH
+        // =====================================
+
         if (passwordModel.NewPassword !=
             passwordModel.ConfirmPassword)
         {
@@ -515,7 +561,10 @@
             return;
         }
 
+        // =====================================
         // CHECK STRENGTH
+        // =====================================
+
         if (!IsPasswordStrong(
             passwordModel.NewPassword))
         {
@@ -527,12 +576,10 @@
 
         try
         {
-            // GET SESSION
-            var userJson = await JS.InvokeAsync<string>(
-                "localStorage.getItem",
-                "currentUser");
+            var currentUser =
+                await CurrentUserService.GetUser();
 
-            if (string.IsNullOrEmpty(userJson))
+            if (currentUser == null)
             {
                 errorMessage =
                     "User session not found.";
@@ -540,29 +587,24 @@
                 return;
             }
 
-            var currentUser =
-                JsonSerializer.Deserialize<UserSession>(
-                    userJson);
-
-            if (currentUser == null)
-            {
-                errorMessage =
-                    "Invalid session.";
-
-                return;
-            }
-
+            // =================================
             // REQUEST
-            var request = new ChangePasswordRequest
-            {
-                CurrentPassword =
-                    passwordModel.CurrentPassword,
+            // =================================
 
-                NewPassword =
-                    passwordModel.NewPassword
-            };
+            var request =
+                new ChangePasswordRequest
+                {
+                    CurrentPassword =
+                        passwordModel.CurrentPassword,
 
+                    NewPassword =
+                        passwordModel.NewPassword
+                };
+
+            // =================================
             // API CALL
+            // =================================
+
             var response =
                 await Http.PutAsJsonAsync(
                     $"api/users/change-password/{currentUser.Id}",
@@ -590,11 +632,17 @@
         }
     }
 
+    // =========================================
+    // PASSWORD VALIDATION
+    // =========================================
+
     private bool IsPasswordStrong(string password)
     {
         if (string.IsNullOrEmpty(password) ||
             password.Length < 8)
+        {
             return false;
+        }
 
         return Regex.IsMatch(password, "[A-Z]") &&
                Regex.IsMatch(password, "[a-z]") &&
@@ -604,9 +652,12 @@
                    "[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]");
     }
 
+    // =========================================
+    // RESET PASSWORD FORM
+    // =========================================
+
     private void ResetPasswordForm()
     {
         passwordModel = new();
     }
-
 }

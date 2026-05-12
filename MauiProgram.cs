@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Components.WebView.Maui;
-
+﻿using Admin_DASM.Services;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.WebView.Maui;
 using Microsoft.Extensions.Logging;
 
 namespace Admin_DASM
@@ -30,7 +31,9 @@ namespace Admin_DASM
                 });
 
             // SERVICES
-           // builder.Services.AddScoped<UserService>();
+            builder.Services.AddSingleton<DocumentStateService>();
+            builder.Services.AddBlazoredLocalStorage();
+            builder.Services.AddScoped<CurrentUserService>();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
