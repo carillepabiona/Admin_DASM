@@ -116,10 +116,7 @@
                         <div class="avatar-wrapper">
                             <div class="avatar" style="background: linear-gradient(135deg, @user.AvatarColor 0%, @GetAvatarColorVariant(user.AvatarColor) 100%)">
                                 @user.Avatar
-                            </div>
-                            <span class="status-badge @(user.IsActive ? "active" : "inactive")">
-                                @(user.IsActive ? "●" : "○")
-                            </span>
+                            </div>               
                         </div>
                         <div class="card-header-info">
                             <h3>@user.Username</h3>

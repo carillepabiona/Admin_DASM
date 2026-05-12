@@ -2,9 +2,12 @@
 
 @using Microsoft.JSInterop
 @using System.Text.Json
-
+@using Admin_DASM.Services
+@inject CurrentUserService CurrentUserService
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject HttpClient Http
 
 <div class="main-container">
 
@@ -213,19 +216,43 @@
 
     private async Task HandleLogout()
     {
-        // REMOVE SESSION
-        await JS.InvokeVoidAsync(
-            "localStorage.removeItem",
-            "currentUser");
+        try
+        {
+            // GET CURRENT USER
+            var currentUser =
+                await CurrentUserService.GetUser();
 
-        showUserMenu = false;
+            // SAVE LOGOUT ACTIVITY
+            if (currentUser != null)
+            {
+                await Http.PostAsJsonAsync(
+                    "api/auth/logout",
+                    new
+                    {
+                        userId = currentUser.Id,
+                        appType = "Admin"
+                    });
+            }
+
+            // REMOVE SESSION
+            await JS.InvokeVoidAsync(
+                "localStorage.removeItem",
+                "currentUser");
+
+            showUserMenu = false;
 
 #if WINDOWS
-    await AppWindowHolder.Instance
-        .RestoreLoginWindow();
+        await AppWindowHolder.Instance
+            .RestoreLoginWindow();
 #endif
 
-        Navigation.NavigateTo("/", true);
+            Navigation.NavigateTo("/", true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"Logout Error: {ex.Message}");
+        }
     }
 
     // USER SESSION MODEL
