@@ -213,12 +213,17 @@
 
     private async Task HandleLogout()
     {
-        // REMOVE USER SESSION
+        // REMOVE SESSION
         await JS.InvokeVoidAsync(
             "localStorage.removeItem",
             "currentUser");
 
         showUserMenu = false;
+
+#if WINDOWS
+    await AppWindowHolder.Instance
+        .RestoreLoginWindow();
+#endif
 
         Navigation.NavigateTo("/", true);
     }
